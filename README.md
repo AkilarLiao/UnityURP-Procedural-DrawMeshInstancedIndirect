@@ -1,6 +1,5 @@
 # UnityURP-Procedural-DrawMeshInstancedIndirect
-A minimal, professional implementation of procedural DrawMeshInstancedIndirect rendering in Unity URP.  
-Demonstrates how to generate instance data entirely at runtime and use a WeightMap to control grass distribution — no asset preloading required, all data generated on the GPU.
+Procedural grass rendering in Unity URP using DrawMeshInstancedIndirect and WeightMap control.
 ---
 
 ## Features
