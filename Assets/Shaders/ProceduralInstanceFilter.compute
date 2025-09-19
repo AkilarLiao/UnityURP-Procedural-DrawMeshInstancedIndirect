@@ -1,0 +1,302 @@
+﻿/// <summary>
+/// Author: SmallBurger Inc
+/// Date: 2025/09/19
+/// Desc:
+/// </summary>
+
+#pragma kernel CSMain
+
+//#pragma multi_compile_local _ PROCESS_ALIGN_GROUND_SURFACE_NORMAL
+//#pragma multi_compile_local _ PROCESS_INTERACTOR
+#include "WeightMapUtility.hlsl"
+
+StructuredBuffer<uint> _VisibleCellIndexBuffer;
+//x,y is RatioPosition.
+//z is random yaw angle.
+AppendStructuredBuffer<float3> _VisibleInstancesTransformBuffer; //will set counter to 0 per frame, then fill in by this compute shader
+
+float2 _CellSize;
+uint _CellColumnCount;
+uint _CellInstanceColumnCount;
+uint _CellInstanceCount;
+
+uint _MaxProcessCount;
+uint _OffsetCount;
+
+/*
+float2 _HeightMinMax;
+float2 _TextureSize;
+float4x4 _ViewProjectionMatrix;
+SamplerState sampler_GroundHeightNormalMap;
+Texture2D<float4> _GroundHeightNormalMap;
+RWStructuredBuffer<uint> _ElementCountBuffer;
+RWTexture2D<float4> _ResultPositionTexture;
+
+SamplerState sampler_WeightMap;
+Texture2D<float4> _WeightMap;
+
+Texture2D _VoronoiRT;
+SamplerState sampler_VoronoiRT;
+half4 _ClumpParams[5];
+
+StructuredBuffer<uint> _VisibleCellIndexBuffer;
+
+uint _InteractorCount;
+StructuredBuffer<float4> _InteractorBuffer;
+
+uint _CellInstanceCount;
+uint _CellColumnCount;
+uint _CellInstanceColumnCount;
+uint _OffsetCount;
+
+float _JitterStrength;
+float2 _InstanceSpacing;
+half _ClumpScale;
+
+uint _StartOffest;
+uint _MaxProcessCount;
+
+float2 _CellSize;
+
+float _MaxInstanceSize;
+
+static const float sc_skipWeightRatio = 0.3;
+static const float sc_maxInstanceSize = 2.0;
+
+static const float3 s_cRandomVector = float3(0.1031, 0.1030, 0.0973);
+
+#ifdef PROCESS_ALIGN_GROUND_SURFACE_NORMAL
+void GetSnapGroundHeightNormal(in float2 position2D, out float height, out float3 normalWS)
+#else
+void GetSnapGroundHeightNormal(in float2 position2D, out float height)
+#endif
+{
+	position2D.x = clamp(position2D.x, _GroundMinMax.x, _GroundMinMax.z);
+	position2D.y = clamp(position2D.y, _GroundMinMax.x, _GroundMinMax.z);
+
+	float2 destUV = float2(
+		(position2D.x - _GroundMinMax.x) / 
+		(_GroundMinMax.z - _GroundMinMax.x),
+		(position2D.y - _GroundMinMax.y) / 
+		(_GroundMinMax.w - _GroundMinMax.y));
+
+	float4 groundHeightNormal = _GroundHeightNormalMap.SampleLevel(
+		sampler_GroundHeightNormalMap, destUV, 0);
+	
+	height = _HeightMinMax.x + groundHeightNormal.a *
+		(_HeightMinMax.y - _HeightMinMax.x);
+
+#ifdef PROCESS_ALIGN_GROUND_SURFACE_NORMAL
+	normalWS = groundHeightNormal.xyz * 2.0 - 1.0;
+#endif //PROCESS_ALIGN_GROUND_SURFACE_NORMAL
+}
+
+void GetDestBrushInfo(in half4 weightColor, out half brushIndex,
+	out half weightRatio)
+{
+	brushIndex = 0;
+	weightRatio = weightColor.r;
+	if (weightRatio < weightColor.g)
+	{
+		weightRatio = weightColor.g;
+		brushIndex = 1;
+	}
+	if (weightRatio < weightColor.b)
+	{
+		weightRatio = weightColor.b;
+		brushIndex = 2;
+	}
+	if (weightRatio < weightColor.a)
+	{
+		weightRatio = weightColor.a;
+		brushIndex = 3;
+	}
+}
+
+float2 GetRandomOffest2D(in float2 point2D)
+{
+	float3 point3D = frac(float3(point2D.xyx) * s_cRandomVector);
+	point3D += dot(point3D, point3D.yzx + 33.33);
+	return frac((point3D.xx + point3D.yz) * point3D.zy);
+}
+
+float2 GetInstanceTransform(in uint instanceOffest, out float2 nonOffestTransform, out float2 instanceRandomOffest)
+{
+	uint destCellIndex = _VisibleCellIndexBuffer[instanceOffest / _CellInstanceCount];
+
+	uint destCellColumnIndex = destCellIndex % _CellColumnCount;
+	uint destCellRowIndex = destCellIndex / _CellColumnCount;
+
+	float2 groundOrigion = float2(
+		_GroundMinMax.x + destCellColumnIndex * _CellSize.x,
+		_GroundMinMax.y + destCellRowIndex * _CellSize.y);
+
+	uint offestInstanceIndex = instanceOffest % _CellInstanceCount;
+
+	uint2 instanceIndex = uint2(
+		offestInstanceIndex % _CellInstanceColumnCount,
+		offestInstanceIndex / _CellInstanceColumnCount);
+
+	nonOffestTransform = float2(
+		groundOrigion.x + instanceIndex.x * _InstanceSpacing.x,
+		groundOrigion.y + instanceIndex.y * _InstanceSpacing.y);
+	
+	instanceRandomOffest = GetRandomOffest2D(nonOffestTransform) * 2.0 - 1.0;
+
+	return nonOffestTransform + instanceRandomOffest * _JitterStrength;
+}
+
+void ApplyClumpTransform(in float2 nonOffestTransform, inout float2 transform)
+{
+	float2 clumpUV = nonOffestTransform * _ClumpScale;
+
+	//Retrieve clump data for this blade from voronoi texture
+	//This includes the clump blade parameter id, and the Center of this clump
+	//in texture space
+	half3 clumpData = _VoronoiRT.SampleLevel(sampler_VoronoiRT,
+		clumpUV, 0).xyz;
+
+	//Compute the clump Center in world space by finding its offsetted position 
+	//in texture space and -dividing- that by the voronoi tiling
+	float2 clumpCenter = (clumpData.yz + floor(clumpUV)) / _ClumpScale;	
+	
+	transform = lerp(transform, clumpCenter, _ClumpParams[round(clumpData.x)].x);
+}
+*/
+
+[numthreads(64, 1, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{	
+	uint instanceIndex = id.x + _OffsetCount;
+	if (instanceIndex >= _MaxProcessCount)
+		return;
+
+	//if (absPosCS.z <= absPosCS.w && absPosCS.y <= absPosCS.w * 1.5 && absPosCS.x <= absPosCS.w * 1.1 && absPosCS.w <= _MaxDrawDistance)
+		//_VisibleInstancesTransformBuffer.Append(id.x + _StartOffset);
+
+	//記錄RatioTransform，RandomYAngle.
+	//RandomSize在VertexShader中處理。
+
+	/*uint instanceIndex = id.x + _OffsetCount;
+    if (instanceIndex >= _MaxProcessCount)
+        return;
+	
+	float2 nonOffestTransform, instanceRandomOffest;	
+	float2 transform = GetInstanceTransform(instanceIndex, nonOffestTransform, instanceRandomOffest);
+
+	ApplyClumpTransform(nonOffestTransform, transform);
+	
+	half4 weightColor = _WeightMap.SampleLevel(
+		sampler_WeightMap, GetGroundUV(transform), 0);
+	
+	half weightRatio, brushIndex;
+	GetDestBrushInfo(weightColor, brushIndex,
+		weightRatio);
+
+	if (weightRatio <= sc_skipWeightRatio)
+		return;
+
+    float4 resultTransform = float4(
+		transform.x,
+		0.0f,
+		transform.y,
+		brushIndex);
+
+#ifdef PROCESS_ALIGN_GROUND_SURFACE_NORMAL
+	float3 normalWS;
+	GetSnapGroundHeightNormal(resultTransform.xz, resultTransform.y, normalWS);
+#else
+	GetSnapGroundHeightNormal(resultTransform.xz, resultTransform.y);
+#endif
+
+	float4 posCS = mul(_ViewProjectionMatrix,
+		float4(resultTransform.xyz, 1.0));
+	float4 absPosCS = abs(posCS);
+	//do culling test in clip space, result is the same as doing
+	//test in NDC space.
+	//prefer clip space here because doing culling test in clip space
+	//is faster.
+	if ((absPosCS.z > absPosCS.w) ||
+		(absPosCS.y > absPosCS.w * _MaxInstanceSize) ||
+		(absPosCS.x > absPosCS.w * _MaxInstanceSize))
+		return;
+	
+	uint index = _ElementCountBuffer.IncrementCounter();
+
+	uint multOffest = 1;
+#ifdef PROCESS_ALIGN_GROUND_SURFACE_NORMAL
+	++multOffest;
+#endif 
+
+#ifdef PROCESS_INTERACTOR
+	++multOffest;
+#endif
+	
+	uint offestIndex = index * multOffest;
+
+	float4 ratioTransform = float4(
+		(resultTransform.x - _GroundMinMax.x) / (_GroundMinMax.z - _GroundMinMax.x),
+		resultTransform.y,
+		(resultTransform.z - _GroundMinMax.y) / (_GroundMinMax.w - _GroundMinMax.y),
+		resultTransform.w);
+
+	//position and texture index
+	_ResultPositionTexture[int2(offestIndex % _TextureSize.x, offestIndex / _TextureSize.x)] =
+		//resultTransform;
+		ratioTransform;
+	
+#ifdef PROCESS_ALIGN_GROUND_SURFACE_NORMAL
+	++offestIndex;
+	_ResultPositionTexture[int2(offestIndex % _TextureSize.x, offestIndex / _TextureSize.x)] =
+		float4(normalWS, 0.0);
+#endif //PROCESS_ALIGN_GROUND_SURFACE_NORMAL
+
+#ifdef PROCESS_INTERACTOR
+	float4 targetCollisionTransform = float4(0, 0, 0, 0);
+	float targetSquareDistance = -1;	
+	
+	for (uint testIndex = 0; testIndex < _InteractorCount; ++testIndex)
+	{
+		float4 collisionTransform = _InteractorBuffer[testIndex];
+		
+		if (collisionTransform.w <= 0)
+			continue;
+
+		float3 delta = resultTransform.xyz - collisionTransform.xyz;
+		float squareDistance = dot(delta, delta);
+		float maxCheckRadius = sc_maxInstanceSize + collisionTransform.w;
+
+		if (((targetSquareDistance <= 0.0) || (targetSquareDistance > squareDistance)) &&
+			(squareDistance <= maxCheckRadius * maxCheckRadius))
+		{
+			targetSquareDistance = squareDistance;
+			targetCollisionTransform = collisionTransform;
+		}		
+	}
+
+	++offestIndex;
+	if (targetCollisionTransform.w == 0)
+	{
+		_ResultPositionTexture[int2(offestIndex % _TextureSize.x, offestIndex / _TextureSize.x)] = float4(0, 0, 0, 0);
+		return;
+	}
+
+	float dist = sqrt(max(targetSquareDistance, 0.0));
+	float maxCheckRadius = sc_maxInstanceSize + targetCollisionTransform.w;
+
+	// linear falloff (1 at center, 0 at radius) — can be changed to smoothstep/pow/exp
+	float falloff = saturate(1.0 - (dist / maxCheckRadius));
+
+	// Direction: from interactor to instance (avoid divide-by-zero)
+	float3 dir = (dist > 1e-5) ? normalize(resultTransform.xyz - targetCollisionTransform.xyz) : float3(0.0, 0.0, 0.0);
+
+	// Use interactor.w as base strength (multiply global scale here if needed)
+	float magnitude = falloff * targetCollisionTransform.w;
+
+	// Storage format: float4(dx, dy, dz, strength)
+	float3 displacement = dir * magnitude;
+	_ResultPositionTexture[int2(offestIndex % _TextureSize.x, offestIndex / _TextureSize.x)] = float4(displacement, magnitude);
+	
+#endif
+*/
+}
