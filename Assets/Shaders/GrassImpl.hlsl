@@ -24,12 +24,24 @@ struct VertexOutput
 //TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
 CBUFFER_START(UnityPerMaterial)
 //float4 _MainTex_ST;
+StructuredBuffer<float3> _VisibleInstancesTransformBuffer;
 CBUFFER_END
 
-VertexOutput VertexProgram(VertexInput input)
+VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 {
     VertexOutput output;
-    output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+    //output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+
+    float3 transform = _VisibleInstancesTransformBuffer[instanceID];//we pre-transform to posWS in C# now       
+    //float3 instancePositoin = float3(transform.x, 0.0, transform.y);
+
+    float2 sizeFactor = float2(1.0, 1.0);
+
+    float3 positionWS = float3(transform.x + input.positionOS.x, input.positionOS.y,
+        transform.y + input.positionOS.z);
+
+    output.positionCS = TransformWorldToHClip(positionWS);
+
     //output.baseUV = TRANSFORM_TEX(input.texcoordOS, _MainTex);
     return output;
 }

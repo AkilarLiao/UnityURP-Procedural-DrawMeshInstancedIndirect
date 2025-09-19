@@ -10,6 +10,8 @@
 //#pragma multi_compile_local _ PROCESS_INTERACTOR
 #include "WeightMapUtility.hlsl"
 
+static const float3 s_cRandomVector = float3(0.1031, 0.1030, 0.0973);
+
 StructuredBuffer<uint> _VisibleCellIndexBuffer;
 //x,y is RatioPosition.
 //z is random yaw angle.
@@ -22,6 +24,10 @@ uint _CellInstanceCount;
 
 uint _MaxProcessCount;
 uint _OffsetCount;
+float _JitterStrength;
+float2 _InstanceSpacing;
+float _MaxInstanceSize;
+float4x4 _ViewProjectionMatrix;
 
 /*
 float2 _HeightMinMax;
@@ -164,15 +170,83 @@ void ApplyClumpTransform(in float2 nonOffestTransform, inout float2 transform)
 }
 */
 
+float2 GetRandomOffest2D(in float2 point2D)
+{
+	float3 point3D = frac(float3(point2D.xyx) * s_cRandomVector);
+	point3D += dot(point3D, point3D.yzx + 33.33);
+	return frac((point3D.xx + point3D.yz) * point3D.zy);
+}
+
+float3 GetInstanceTransform(in uint instanceOffest)
+{
+	uint destCellIndex = _VisibleCellIndexBuffer[instanceOffest / _CellInstanceCount];
+
+	uint destCellColumnIndex = destCellIndex % _CellColumnCount;
+	uint destCellRowIndex = destCellIndex / _CellColumnCount;
+
+	float2 worldOrigion = float2(
+		_WorldMinMax.x + destCellColumnIndex * _CellSize.x,
+		_WorldMinMax.y + destCellRowIndex * _CellSize.y);
+
+	uint offestInstanceIndex = instanceOffest % _CellInstanceCount;
+
+	uint2 instanceIndex = uint2(
+		offestInstanceIndex % _CellInstanceColumnCount,
+		offestInstanceIndex / _CellInstanceColumnCount);
+
+	float2 nonOffestTransform = float2(
+		worldOrigion.x + instanceIndex.x * _InstanceSpacing.x,
+		worldOrigion.y + instanceIndex.y * _InstanceSpacing.y);
+
+	float2 randomOffest2D = GetRandomOffest2D(nonOffestTransform);
+
+	float2 instanceRandomOffest = randomOffest2D * 2.0 - 1.0;
+
+	float2 resultPosition = nonOffestTransform + instanceRandomOffest * _JitterStrength;
+
+	// scale to 0~2π (radians)
+	return float3(resultPosition.x, resultPosition.y, instanceRandomOffest.x * 6.2831853);
+}
+
+//先導入weightMap filter，再來看…
+//超過max visibleCount就不處理…
+//最大可視距離的功能。
 [numthreads(64, 1, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {	
 	uint instanceIndex = id.x + _OffsetCount;
 	if (instanceIndex >= _MaxProcessCount)
 		return;
+	
+	float3 transform = GetInstanceTransform(instanceIndex);
 
-	//if (absPosCS.z <= absPosCS.w && absPosCS.y <= absPosCS.w * 1.5 && absPosCS.x <= absPosCS.w * 1.1 && absPosCS.w <= _MaxDrawDistance)
-		//_VisibleInstancesTransformBuffer.Append(id.x + _StartOffset);
+	if ((transform.x < _WorldMinMax.x) ||
+		(transform.y < _WorldMinMax.y) ||
+		(transform.x > _WorldMinMax.z) ||
+		(transform.y > _WorldMinMax.w))
+		return;
+
+
+	float4 absPosCS = abs(mul(_ViewProjectionMatrix,
+		float4(transform.x, 0.0, transform.y, 1.0)));
+
+	//do culling test in clip space, result is the same as doing
+	//test in NDC space.
+	//prefer clip space here because doing culling test in clip space
+	//is faster.
+	if ((absPosCS.z > absPosCS.w) ||
+		(absPosCS.y > absPosCS.w * _MaxInstanceSize) ||
+		(absPosCS.x > absPosCS.w * _MaxInstanceSize))
+		return;
+
+	_VisibleInstancesTransformBuffer.Append(transform);
+
+	//float4 ratioTransform = float4(
+		//(resultTransform.x - _GroundMinMax.x) / (_GroundMinMax.z - _GroundMinMax.x),
+		//resultTransform.y,
+		//(resultTransform.z - _GroundMinMax.y) / (_GroundMinMax.w - _GroundMinMax.y),
+		//resultTransform.w);
+
 
 	//記錄RatioTransform，RandomYAngle.
 	//RandomSize在VertexShader中處理。

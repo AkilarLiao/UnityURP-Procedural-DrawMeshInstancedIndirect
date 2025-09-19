@@ -62,6 +62,14 @@ namespace SB.ProceduralGrass
         public Rect m_worldRect = new Rect(Vector2.zero, 2000.0f * Vector2.one);
         public uint2 m_cellColumnRowCount = new uint2(20, 20);
         public uint2 m_cellInstanceColumnRowCount = new uint2(100, 100);
+        [Range(0.0f, 10.0f)]
+        public float m_jitterStrength = 5.0f;
+
+        [Tooltip("The space width size.")]
+        public SizeInfo m_spaceWidthSize;
+
+        [Tooltip("The space height size.")]
+        public SizeInfo m_spaceHeightSize;
 
         [System.Serializable, ReloadGroup]
         public sealed class InternalResource
@@ -73,5 +81,22 @@ namespace SB.ProceduralGrass
         }
         //[HideInInspector]
         public InternalResource m_internalResource = null;
+
+
+        [System.Serializable]
+        public class SizeInfo
+        {
+            [Tooltip("The size.")]
+            [Range(0.1f, 10.0f)]
+            public float m_size = 2.0f;
+
+            [Tooltip("The min offset size.")]
+            [Range(0.0f, 5.0f)]
+            public float m_minSizeOffest = 0.2f;
+
+            [Tooltip("The max offset size.")]
+            [Range(0.0f, 10.0f)]
+            public float m_maxSizeOffest = 0.5f;
+        }
     }
 }
