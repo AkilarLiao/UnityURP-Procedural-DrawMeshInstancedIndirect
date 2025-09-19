@@ -12,17 +12,13 @@ Shader "Hidden/SB/Grass"
     }
     SubShader
     {
-        Tags 
-        {            
-            //"Queue" = "Geometry-1"
-            //"RenderPipeline" = "UniversalPipeline"
+        Tags
+        {
+            "Queue" = "Transparent-1"
         }
-        //LOD 100
 
         Pass
-        {            
-            //Blend SrcAlpha OneMinusSrcAlpha
-            //ZWrite Off
+        {   
             HLSLPROGRAM
             #pragma vertex VertexProgram
             #pragma fragment FragmentProgram

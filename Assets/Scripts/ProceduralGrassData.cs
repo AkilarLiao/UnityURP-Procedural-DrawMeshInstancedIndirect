@@ -65,11 +65,19 @@ namespace SB.ProceduralGrass
         [Range(0.0f, 10.0f)]
         public float m_jitterStrength = 5.0f;
 
-        [Tooltip("The space width size.")]
-        public SizeInfo m_spaceWidthSize;
+        [Tooltip("The width sizeInfo.")]
+        public SizeInfo m_widthSizeInfo;
 
-        [Tooltip("The space height size.")]
-        public SizeInfo m_spaceHeightSize;
+        [Tooltip("The height sizeInfo.")]
+        public SizeInfo m_heightSizeInfo;
+
+        [Tooltip("Distance at which the object begins to fade out.")]
+        [Range(10.0f, 1000.0f)]
+        public float m_fadeStartDistance = 200.0f;
+
+        [Tooltip("Distance at which the object is fully invisible (culled).")]
+        [Range(20.0f, 1000.0f)]
+        public float m_fadeEndDistance = 300.0f;
 
         [System.Serializable, ReloadGroup]
         public sealed class InternalResource

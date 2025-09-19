@@ -28,6 +28,7 @@ float _JitterStrength;
 float2 _InstanceSpacing;
 float _MaxInstanceSize;
 float4x4 _ViewProjectionMatrix;
+float3 _CameraPosition;
 
 /*
 float2 _HeightMinMax;
@@ -226,6 +227,10 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 		(transform.y > _WorldMinMax.w))
 		return;
 
+	float3 delta = _CameraPosition - float3(transform.x, 0.0f, transform.y);
+	float viewSquareDistance = dot(delta, delta);
+	if(viewSquareDistance > _MaxViewSquareDistance)
+		return;
 
 	float4 absPosCS = abs(mul(_ViewProjectionMatrix,
 		float4(transform.x, 0.0, transform.y, 1.0)));

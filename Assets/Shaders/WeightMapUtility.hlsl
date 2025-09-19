@@ -10,6 +10,7 @@
 //x,y is min
 //z,w is max
 float4 _WorldMinMax;
+float _MaxViewSquareDistance;
 
 half2 GetWorldUV(in float2 worldPosition2D)
 {
