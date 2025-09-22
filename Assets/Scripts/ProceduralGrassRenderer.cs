@@ -4,6 +4,8 @@
 /// Desc:
 /// </summary>
 
+//考慮要不要改成billboard...
+
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
