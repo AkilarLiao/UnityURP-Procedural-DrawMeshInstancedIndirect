@@ -4,6 +4,10 @@
 /// Desc:
 /// </summary>
 
+//初步測試，網格數還是有差的，改成billboard性能會比較好…
+//1.單三角：116 fps（家裡電腦）
+//2.coneMesh: 86 fps（家裡電腦）
+
 //1.考慮要不要改成billboard...
 //2.要怎麼算specular, out line rim，還是中心點…
 //3.整合WeightMap...
@@ -83,7 +87,7 @@ namespace SB.ProceduralGrass
             m_indirectArgumentsBuffer = new ComputeBuffer(1, ms_tempIndirectArguments.Length * sizeof(uint),
                 ComputeBufferType.IndirectArguments);
             
-            var grassMesh = GetGrassConeMeshCache();
+            var grassMesh = GetGrassMesh();
             int subMeshIndex = Mathf.Clamp(0, 0, grassMesh.subMeshCount - 1);
 
             ms_tempIndirectArguments[0] = grassMesh.GetIndexCount(
@@ -193,7 +197,7 @@ namespace SB.ProceduralGrass
 
             ComputeBuffer.CopyCount(m_visibleInstanceBuffer, m_indirectArgumentsBuffer, 4);
 
-            Graphics.DrawMeshInstancedIndirect(GetGrassConeMeshCache(), 0, m_grassMaterial, m_renderBound, m_indirectArgumentsBuffer,
+            Graphics.DrawMeshInstancedIndirect(GetGrassMesh(), 0, m_grassMaterial, m_renderBound, m_indirectArgumentsBuffer,
                 0, null, ShadowCastingMode.Off, true, 0, camera);
         }
         private void OnProceduralGrassDataChangeCB()
@@ -340,9 +344,9 @@ namespace SB.ProceduralGrass
 
         //private Mesh GetGrassMesh()
         //{
-        //    if(m_cachedGrassMesh)
+        //    if (m_cachedGrassMesh)
         //        return m_cachedGrassMesh;
-            
+
         //    m_cachedGrassMesh = new Mesh();
         //    Vector3[] verts = new Vector3[3];
         //    verts[0] = new Vector3(-mc_grassMeshWidth, 0.0f, 0.0f);
@@ -355,7 +359,7 @@ namespace SB.ProceduralGrass
         //    return m_cachedGrassMesh;
         //}
 
-        private Mesh GetGrassConeMeshCache()
+        private Mesh GetGrassMesh()
         {
             if (m_cachedGrassMesh)
                 return m_cachedGrassMesh;
