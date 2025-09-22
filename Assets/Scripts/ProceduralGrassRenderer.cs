@@ -161,7 +161,13 @@ namespace SB.ProceduralGrass
                     return;
             }
 
-            m_visableCellsCuller.ProcessCulling(camera, in m_cellSize, in m_proceduralGrassData.m_worldRect,
+            var cullingCamera = camera;
+#if UNITY_EDITOR
+            if (m_isOnlyViewMainCameraCulling)
+                cullingCamera = Camera.main;
+#endif //UNITY_EDITOR
+
+            m_visableCellsCuller.ProcessCulling(cullingCamera, in m_cellSize, in m_proceduralGrassData.m_worldRect,
                 in msr_worldMinMaxHeight);
 
             var visibleCellIndices = m_visableCellsCuller.GetVisibleCellIndices();
@@ -443,9 +449,11 @@ namespace SB.ProceduralGrass
             //UpdateCS();
             UnityEditor.EditorApplication.QueuePlayerLoopUpdate();
         }
+
+        [Tooltip("Only show main camera view scope (for debug purpose).")]
+        [SerializeField]
+        private bool m_isOnlyViewMainCameraCulling = false;
 #endif
-
-
 
         public ProceduralGrassData m_proceduralGrassData = null;
         

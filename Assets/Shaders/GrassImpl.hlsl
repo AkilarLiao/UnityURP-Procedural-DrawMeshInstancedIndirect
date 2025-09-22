@@ -126,43 +126,15 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     output.fogFactor = fogFactor;
 #endif
 
-
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-    output.shadowCoord = GetShadowCoord(input);
-#endif
+#ifdef REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR
+#ifdef _MAIN_LIGHT_SHADOWS_SCREEN
+    output.shadowCoord = ComputeScreenPos(output.positionCS);
+#else
+    output.shadowCoord = TransformWorldToShadowCoord(output.positionWS);
+#endif //_MAIN_LIGHT_SHADOWS_SCREEN
+#endif //REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR
 
     output.vertexSH = SampleSHVertex(output.normalWS);
-
-
-    //這樣接收shadow會非常不準，不打算這樣做…
-
-    //half3 attenuatedLightColor = light.color * (light.distanceAttenuation * light.shadowAttenuation);
-    //half3 lightDiffuseColor = LightingLambert(attenuatedLightColor, light.direction, inputData.normalWS);
-    /*half3 VertexLighting(float3 positionWS, half3 normalWS)
-    {
-        half3 vertexLightColor = half3(0.0, 0.0, 0.0);
-
-#ifdef _ADDITIONAL_LIGHTS_VERTEX
-        uint lightsCount = GetAdditionalLightsCount();
-        uint meshRenderingLayers = GetMeshRenderingLayer();
-
-        LIGHT_LOOP_BEGIN(lightsCount)
-            Light light = GetAdditionalLight(lightIndex, positionWS);
-
-#ifdef _LIGHT_LAYERS
-        if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
-#endif
-        {
-            half3 lightColor = light.color * light.distanceAttenuation;
-            vertexLightColor += LightingLambert(lightColor, light.direction, normalWS);
-        }
-
-        LIGHT_LOOP_END
-#endif
-
-            return vertexLightColor;
-    }*/
-
 
     return output;
 }
