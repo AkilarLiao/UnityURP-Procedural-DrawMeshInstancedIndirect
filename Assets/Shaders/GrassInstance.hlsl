@@ -10,8 +10,7 @@
 struct GrassInstanceData
 {
     float2 position2D;
-    half2 sizeFactor;
-    half yawRadian;
+    half2 sizeFactor;    
     half yawSin;
     half yawCos;
     half wind;

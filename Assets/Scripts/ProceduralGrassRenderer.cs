@@ -511,8 +511,7 @@ namespace SB.ProceduralGrass
         private struct GrassInstanceData
         {
             public Vector2 position2D;
-            public Vector2 sizeFactor;
-            public float yawRadian;
+            public Vector2 sizeFactor;            
             public float yawSin;
             public float yawCos;
             public float wind;
