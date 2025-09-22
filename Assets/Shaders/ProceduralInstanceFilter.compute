@@ -41,6 +41,23 @@ float3 _CameraPosition;
 half3 _WidthSizeInfo;
 half3 _HeightSizeInfo;
 
+float4 _WorldMinMax;
+
+half _WindWeight;
+//x:intensity
+//y:frequency
+half2 _WindAParams;
+//xy:tiling
+//zw:wrap
+half4 _WindATilingWrap;
+
+half2 _WindBParams;
+half4 _WindBTilingWrap;
+
+half2 _WindCParams;
+half4 _WindCTilingWrap;
+
+float _CurrentTime;
 /*
 float2 _HeightMinMax;
 float2 _TextureSize;
@@ -182,6 +199,13 @@ void ApplyClumpTransform(in float2 nonOffestTransform, inout float2 transform)
 }
 */
 
+half2 GetWorldUV(in float2 worldPosition2D)
+{
+	float2 clmapPosition2D = clamp(worldPosition2D, _WorldMinMax.xy, _WorldMinMax.zw);
+	return half2((clmapPosition2D.x - _WorldMinMax.x) / (_WorldMinMax.z - _WorldMinMax.x),
+		(clmapPosition2D.y - _WorldMinMax.y) / (_WorldMinMax.w - _WorldMinMax.y));
+}
+
 float2 GetRandomOffest2D(in float2 point2D)
 {
 	float3 point3D = frac(float3(point2D.xyx) * s_cRandomVector);
@@ -233,10 +257,56 @@ float2 GetDestSize(in float2 position2D//,
 	return float2(destWidth, destHeight);
 }
 
+half CalculateWind(in float2 position2D)
+{
+	half wind = 0;
+	
+	//windA
+	wind += (sin(_CurrentTime * _WindAParams.y +
+		position2D.x * _WindATilingWrap.x +
+		position2D.y * _WindATilingWrap.y) *
+		_WindATilingWrap.z + _WindATilingWrap.w) *
+		_WindAParams.x/* * windDensityRatio*/;
 
+	//windB
+	wind += (sin(_CurrentTime * _WindBParams.y +
+		position2D.x * _WindBTilingWrap.x +
+		position2D.y * _WindBTilingWrap.y) *
+		_WindBTilingWrap.z + _WindBTilingWrap.w) *
+		_WindBParams.x/* * windDensityRatio*/;
 
+	//windC
+	wind += (sin(_CurrentTime * _WindCParams.y +
+		position2D.x * _WindCTilingWrap.x +
+		position2D.y * _WindCTilingWrap.y) *
+		_WindCTilingWrap.z + _WindCTilingWrap.w) *
+		_WindCParams.x/* * windDensityRatio*/;
 
+	wind *= _WindWeight;
 
+	/*
+	//x:baseSize
+	//y:minSizeOffest
+	//z:maxSizeOffest
+	half3 _WidthSizeInfo;
+	half3 _HeightSizeInfo;
+
+	half _WindWeight;
+	//x:intensity
+	//y:frequency
+	half2 _WindAParams;
+	//xy:tiling
+	//zw:wrap
+	half4 _WindATilingWrap;
+
+	half2 _WindBParams;
+	half4 _WindBTilingWrap;
+
+	half2 _WindCParams;
+	half4 _WindCTilingWrap;
+	*/
+	return wind;
+}
 
 float3 GetInstanceTransform(in uint instanceOffest)
 {
@@ -307,6 +377,10 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	GrassInstanceData grassInstanceData = (GrassInstanceData)0;
 	grassInstanceData.position2D = transform.xy;
 	grassInstanceData.yawRadian = transform.z;
+	grassInstanceData.wind = CalculateWind(grassInstanceData.position2D);
+
+	grassInstanceData.yawSin = sin(grassInstanceData.yawRadian);
+	grassInstanceData.yawCos = cos(grassInstanceData.yawRadian);
 
 	grassInstanceData.sizeFactor = GetDestSize(grassInstanceData.position2D);
 

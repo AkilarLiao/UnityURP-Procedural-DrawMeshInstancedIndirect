@@ -77,6 +77,9 @@ namespace SB.ProceduralGrass
         [Tooltip("Distance at which the object is fully invisible (culled).")]
         [Range(20.0f, 1000.0f)]
         public float m_fadeEndDistance = 300.0f;
+        
+        [Tooltip("The wind parameters.")]
+        public WindParameters m_windParameters = new WindParameters();
 
         [Tooltip("grass color texture")]
         public Texture2D m_grassColorTexture = null;
@@ -107,6 +110,84 @@ namespace SB.ProceduralGrass
             [Tooltip("The max offset size.")]
             [Range(0.0f, 10.0f)]
             public float m_maxSizeOffest = 0.5f;
+        }
+
+        [System.Serializable]
+        public class WindParameters
+        {
+            [Tooltip("The wind intensity ratio.")]
+            [Range(0.0f, 1.0f)]
+            public float m_windIntensityRatio = 0.3f;
+
+            [Tooltip("The wind intensity ratio.")]
+            [Range(0.0f, 360.0f)]
+            public float m_windYawAngle = 0.0f;
+
+            [Tooltip("The first wind info.")]
+            public WindInfo m_windInfoA = new WindInfo(2.0f, 2.0f,
+                new Vector2(0.1f, 0.1f), new Vector2(0.5f, 0.5f));
+
+            [Tooltip("The second wind info.")]
+            public WindInfo m_windInfoB = new WindInfo(0.25f, 4.0f,
+                new Vector2(0.37f, 3.0f), new Vector2(0.5f, 0.5f));
+
+            [Tooltip("The third wind info.")]
+            public WindInfo m_windInfoC = new WindInfo(0.125f, 4.0f,
+                new Vector2(0.77f, 3.0f), new Vector2(0.5f, 0.5f));
+
+            //Sample.
+            /*[Tooltip("The first wind info.")]
+            public WindInfo m_windInfoA = new WindInfo(1.77, 4,
+                new Vector2(0.1f, 0.1f), new Vector2(0.5f, 0.5f));
+
+            [Tooltip("The second wind info.")]
+            public WindInfo m_windInfoB = new WindInfo(0.25f, 7.7,
+                new Vector2(0.37f, 3.0f), new Vector2(0.5f, 0.5f));
+
+            [Tooltip("The third wind info.")]
+            public WindInfo m_windInfoC = new WindInfo(0.125f, 11.7,
+                new Vector2(0.77f, 3.0f), new Vector2(0.5f, 0.5f));
+            */
+
+            //Origion.
+            /*[Tooltip("The first wind info.")]
+            public WindInfo m_windInfoA = new WindInfo(1.77, 4,
+                new Vector2(0.1f, 0.1f), new Vector2(0.5f, 0.5f));
+
+            [Tooltip("The second wind info.")]
+            public WindInfo m_windInfoB = new WindInfo(0.25f, 7.7,
+                new Vector2(0.37f, 3.0f), new Vector2(0.5f, 0.5f));
+
+            [Tooltip("The third wind info.")]
+            public WindInfo m_windInfoC = new WindInfo(0.125f, 11.7,
+                new Vector2(0.77f, 3.0f), new Vector2(0.5f, 0.5f));*/
+        }
+
+        [System.Serializable]
+        public class WindInfo
+        {
+            [Tooltip("The wind intensity.")]
+            [Range(0.0f, 100.0f)]
+            public float m_windIntensity;
+
+            [Tooltip("The wind frequency.")]
+            [Range(0.0f, 10.0f)]
+            public float m_windFrequency;
+
+            [Tooltip("The wind tiling.")]
+            public Vector2 m_windTiling;
+
+            [Tooltip("The wind wrap.")]
+            public Vector2 m_windWrap;
+
+            public WindInfo(float windIntensity, float windFrequency,
+                Vector2 windTiling, Vector2 windWrap)
+            {
+                m_windIntensity = windIntensity;
+                m_windFrequency = windFrequency;
+                m_windTiling = windTiling;
+                m_windWrap = windWrap;
+            }
         }
     }
 }

@@ -23,6 +23,12 @@ namespace SB.ProceduralGrass
                 m_proceduralGrassData.OnProceduralGrassDataChange -= OnProceduralGrassDataChangeCB;
                 m_proceduralGrassData.OnProceduralGrassDataChange += OnProceduralGrassDataChangeCB;
             }
+
+            if (!Application.isPlaying)
+            {
+                UnityEditor.EditorApplication.update -= EditUpdate;
+                UnityEditor.EditorApplication.update += EditUpdate;
+            }
 #endif //UNITY_EDITOR
             RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
             RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
@@ -32,6 +38,9 @@ namespace SB.ProceduralGrass
         {
             RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
 #if UNITY_EDITOR
+            if (!Application.isPlaying)
+                UnityEditor.EditorApplication.update -= EditUpdate;
+
             if (m_proceduralGrassData)
                 m_proceduralGrassData.OnProceduralGrassDataChange -= OnProceduralGrassDataChangeCB;
 #endif //UNITY_EDITOR
@@ -122,8 +131,9 @@ namespace SB.ProceduralGrass
         }
 
         private void LateUpdate()
-        {
-            //Graphics.DrawMesh(GetGrassConeMeshCache(), Matrix4x4.identity, m_grassMaterial, 0);
+        {   
+            m_targetProceduralInstanceFilterCS.SetFloat(ProceduralInstanceFilterID.msr_currentTime,
+                Time.time);
 #if UNITY_EDITOR
             RefreshParams();
 #endif //UNITY_EDITOR
@@ -192,10 +202,22 @@ namespace SB.ProceduralGrass
             float maxViewDistance = Mathf.Max(fadeStartDistance + 1.0f, 
                 m_proceduralGrassData.m_fadeEndDistance);
 
+            //referesh shared property
             Shader.SetGlobalFloat(msr_maxViewSquareDistanceID, maxViewDistance * maxViewDistance);
 
-            m_grassMaterial.SetFloat(GrassShaderID.msr_fadeStartSquareDistance, fadeStartDistance * fadeStartDistance);           
-            
+            m_grassMaterial.SetFloat(GrassShaderID.msr_fadeStartSquareDistance, fadeStartDistance * fadeStartDistance);
+
+            var windParameters = m_proceduralGrassData.m_windParameters;
+
+            //public Vector2 GetMovementParams(float directionAngle)
+            //{
+            //    var rotation = Quaternion.Euler(0.0f, directionAngle, 0.0f);
+            //    var direction = rotation * Vector3.forward;
+            //    return new Vector2(direction.x, direction.z);
+            //}
+            var rotation = Quaternion.Euler(0.0f, windParameters.m_windYawAngle, 0.0f);
+            var direction = rotation * Vector3.forward;
+            m_grassMaterial.SetVector(GrassShaderID.msr_windDirection, new Vector2(direction.x, direction.z));
 
             m_grassMaterial.SetTexture(GrassShaderID.msr_ColorTexture, m_proceduralGrassData.m_grassColorTexture);
 
@@ -210,8 +232,8 @@ namespace SB.ProceduralGrass
                 new Vector3(min.x, msr_worldMinMaxHeight.x, min.y),
                 new Vector3(max.x, msr_worldMinMaxHeight.y, max.y));
 
-            //referesh shared property
-            Shader.SetGlobalVector(msr_worldMinMaxID, new float4(worldRect.min, worldRect.max));
+            
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_worldMinMax, new float4(worldRect.min, worldRect.max));
 
             //referesh ComputeShader property
             ref uint2 cellColumnRowCount = ref m_proceduralGrassData.m_cellColumnRowCount;
@@ -273,7 +295,46 @@ namespace SB.ProceduralGrass
                 heightSizeInfo.m_size + heightSizeInfo.m_maxSizeOffest);
 
             m_targetProceduralInstanceFilterCS.SetFloat(ProceduralInstanceFilterID.msr_maxInstanceSize,
-                maxSize);
+                maxSize);            
+
+            m_targetProceduralInstanceFilterCS.SetFloat(ProceduralInstanceFilterID.msr_windWeight, windParameters.m_windIntensityRatio);
+
+            var windInfo = windParameters.m_windInfoA;
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_WindAParams, new Vector2(
+                windInfo.m_windIntensity, windInfo.m_windFrequency));
+
+            var tiling = windInfo.m_windTiling;
+            var wrap = windInfo.m_windWrap;
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_windATilingWrap, new Vector4(
+                tiling.x, tiling.y, wrap.x, wrap.y));
+
+            windInfo = windParameters.m_windInfoB;
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_WindBParams, new Vector2(
+                windInfo.m_windIntensity, windInfo.m_windFrequency));
+
+            tiling = windInfo.m_windTiling;
+            wrap = windInfo.m_windWrap;
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_windBTilingWrap, new Vector4(
+                tiling.x, tiling.y, wrap.x, wrap.y));
+
+            windInfo = windParameters.m_windInfoC;
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_WindCParams, new Vector2(
+                windInfo.m_windIntensity, windInfo.m_windFrequency));
+
+            tiling = windInfo.m_windTiling;
+            wrap = windInfo.m_windWrap;
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_windCTilingWrap, new Vector4(
+                tiling.x, tiling.y, wrap.x, wrap.y));
+
+
+            //public static readonly int msr_windWeight = Shader.PropertyToID("_WindWeight");
+            //public static readonly int msr_WindAParams = Shader.PropertyToID("_WindAParams");
+            //public static readonly int msr_windATilingWrap = Shader.PropertyToID("_WindATilingWrap");
+            //public static readonly int msr_WindBParams = Shader.PropertyToID("_WindBParams");
+            //public static readonly int msr_windBTilingWrap = Shader.PropertyToID("_WindBTilingWrap");
+            //public static readonly int msr_WindCParams = Shader.PropertyToID("_WindCParams");
+            //public static readonly int msr_windCTilingWrap = Shader.PropertyToID("_WindCTilingWrap");
+
         }
 
         //private Mesh GetGrassMesh()
@@ -377,6 +438,15 @@ namespace SB.ProceduralGrass
             }
         }
 
+#if UNITY_EDITOR
+        private void EditUpdate()
+        {
+            //if (!Application.isPlaying)
+            //UpdateCS();
+            UnityEditor.EditorApplication.QueuePlayerLoopUpdate();
+        }
+#endif
+
 
 
         public ProceduralGrassData m_proceduralGrassData = null;
@@ -400,9 +470,7 @@ namespace SB.ProceduralGrass
 
         private static uint[] ms_tempIndirectArguments = new uint[5] { 0, 0, 0, 0, 0 };
 
-        private static readonly Vector2 msr_worldMinMaxHeight = new Vector2(0.0f, 10.0f);
-
-        private static readonly int msr_worldMinMaxID = Shader.PropertyToID("_WorldMinMax");
+        private static readonly Vector2 msr_worldMinMaxHeight = new Vector2(0.0f, 10.0f);        
 
         private static readonly int msr_visibleInstanceBufferID = Shader.PropertyToID("_VisibleInstanceBuffer");
         private static readonly int msr_maxViewSquareDistanceID = Shader.PropertyToID("_MaxViewSquareDistance");
@@ -423,12 +491,23 @@ namespace SB.ProceduralGrass
 
             public static readonly int msr_widthSizeInfo = Shader.PropertyToID("_WidthSizeInfo");
             public static readonly int msr_heightSizeInfo = Shader.PropertyToID("_HeightSizeInfo");
+            public static readonly int msr_worldMinMax = Shader.PropertyToID("_WorldMinMax");
+
+            public static readonly int msr_windWeight = Shader.PropertyToID("_WindWeight");
+            public static readonly int msr_WindAParams = Shader.PropertyToID("_WindAParams");
+            public static readonly int msr_windATilingWrap = Shader.PropertyToID("_WindATilingWrap");
+            public static readonly int msr_WindBParams = Shader.PropertyToID("_WindBParams");
+            public static readonly int msr_windBTilingWrap = Shader.PropertyToID("_WindBTilingWrap");
+            public static readonly int msr_WindCParams = Shader.PropertyToID("_WindCParams");
+            public static readonly int msr_windCTilingWrap = Shader.PropertyToID("_WindCTilingWrap");
+            public static readonly int msr_currentTime = Shader.PropertyToID("_CurrentTime");
         }
 
         private static class GrassShaderID
         {
             public static readonly int msr_fadeStartSquareDistance = Shader.PropertyToID("_FadeStartSquareDistance");            
             public static readonly int msr_ColorTexture = Shader.PropertyToID("_ColorTexture");
+            public static readonly int msr_windDirection = Shader.PropertyToID("_WindDirection");
         }
 
         private const float mc_grassMeshWidth = 0.25f;
@@ -441,6 +520,8 @@ namespace SB.ProceduralGrass
             public Vector2 position2D;
             public Vector2 sizeFactor;
             public float yawRadian;
+            public float yawSin;
+            public float yawCos;
             public float wind;
         }
     }

@@ -18,9 +18,8 @@ struct VertexInput
 };
 
 struct VertexOutput
-{
-    //real2 baseUV : TEXCOORD0;
-    float4 positionCS       : SV_POSITION;    
+{   
+    float4 positionCS       : SV_POSITION;
     half displayWeight      : TEXCOORD0;
     half3 applyLittingColor : TEXCOORD1;
     float4 positionSS       : TEXCOORD2;
@@ -30,104 +29,69 @@ TEXTURE2D(_ColorTexture); SAMPLER(sampler_ColorTexture);
 
 
 CBUFFER_START(UnityPerMaterial)
-//float4 _MainTex_ST;
 StructuredBuffer<GrassInstanceData> _VisibleInstanceBuffer;
 float _FadeStartSquareDistance;
-
-//x:baseSize
-//y:minSizeOffest
-//z:maxSizeOffest
-//float3 _WidthSizeInfo;
-//float3 _HeightSizeInfo;
+half2 _WindDirection;
+half _FadeGroundPow;
 CBUFFER_END
+
+void CalculateNormal(in VertexInput input, in float sinValue, in float cosValue, in half2 windOffest,
+    out half3 normalWS)
+{   
+    normalWS = half3(
+        input.normalOS.x * cosValue - input.normalOS.z * sinValue,
+        input.normalOS.y,
+        input.normalOS.x * sinValue + input.normalOS.z * cosValue);
+
+    half windNormalFactor = 1.0;
+    half2 scaleWindOffest = windOffest * windNormalFactor;
+    normalWS += half3(scaleWindOffest.x, 0.0, scaleWindOffest.y);
+    normalWS = normalize(normalWS);
+}
 
 VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 {
     VertexOutput output;    
 
     GrassInstanceData grassInstanceData = _VisibleInstanceBuffer[instanceID];
+    
+    float2 position2D = grassInstanceData.position2D;
 
-    //float3 transform = _VisibleInstanceBuffer[instanceID];
-
-    float3 transform = float3(grassInstanceData.position2D, grassInstanceData.yawRadian);
-
-    float3 instancePositoin = float3(transform.x, 0.0, transform.y);
+    float3 instancePositoin = float3(position2D.x, 0.0, position2D.y);
 
     float3 viewPositionWS = TransformWorldToView(instancePositoin);
     float viewSquareDistance = dot(viewPositionWS, viewPositionWS);
 
     float clampViewSquareDistance = clamp(viewSquareDistance, _FadeStartSquareDistance, _MaxViewSquareDistance);
-    output.displayWeight = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) / 
+    output.displayWeight = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) /
         (_MaxViewSquareDistance - _FadeStartSquareDistance);
+    output.displayWeight *= input.positionOS.y;
 
-    //float2 sizeFactor = GetDestSize(instancePositoin.xz);
     float2 sizeFactor = grassInstanceData.sizeFactor;
-
-    // 用 sizeFactor 對局部頂點做 XZ 方向縮放
+    
     float3 destPositionOS = float3(
         input.positionOS.x * sizeFactor.x,
         input.positionOS.y * sizeFactor.y,
         input.positionOS.z * sizeFactor.x);
+    
+    float sinValue = grassInstanceData.yawSin;
+    float cosValue = grassInstanceData.yawCos;
 
-    // 建立繞 Y 軸的旋轉
-    float s = sin(transform.z);
-    float c = cos(transform.z);
     destPositionOS = float3(
-        destPositionOS.x * c - destPositionOS.z * s,
+        destPositionOS.x * cosValue - destPositionOS.z * sinValue,
         destPositionOS.y,
-        destPositionOS.x * s + destPositionOS.z * c
-        );    
-
+        destPositionOS.x * sinValue + destPositionOS.z * cosValue
+        );
+    
     float3 positionWS = instancePositoin + destPositionOS;
 
-    // 旋轉 normal
-    half3 normalOS = input.normalOS;
-    half3 normalWS = float3(
-        normalOS.x * c - normalOS.z * s,
-        normalOS.y,
-        normalOS.x * s + normalOS.z * c
-        );
+    float2 windOffest = _WindDirection * grassInstanceData.wind * input.positionOS.y;
+    positionWS.xz += windOffest;
 
+    half3 normalWS;
+    CalculateNormal(input, sinValue, cosValue, windOffest, normalWS);
+    
     output.applyLittingColor = normalWS * 0.5 + 0.5;
-
-    /*
-    // 原本 normal
-    float3 normalOS = input.normalOS;
-
-    // 風力方向（xz）
-    float2 windDir = normalize(float2(fx, fz));
-
-    // 風力強度
-    float windForce = 2.0;
-
-    // 把 normal 稍微「傾斜」一點
-    float3 windNormal = normalOS + float3(windDir.x, 0, windDir.y) * windForce * factor;
-
-    // factor 可依據頂點高度（比如頂端影響最大，底部不動）
-    float factor = saturate(input.positionOS.y / 草的高度);
-
-    // 最後正規化
-    windNormal = normalize(windNormal);
-    */
-
-    /*void ApplyWindOffsetToNormal(
-        in float localOSYalue,
-        in float3 cameraTransformRightWS,
-        in float wind,
-        inout float3 normalOS)
-    {
-        // 讓 normal 稍微傾斜一點
-        // 0.5是讓法線偏移不要太大，你可以自行調整
-        float windNormalFactor = 0.5;
-
-        // normal 主要是Y向上，加一點 wind 方向
-        normalOS += cameraTransformRightWS * wind * localOSYalue * windNormalFactor;
-
-        // 最後正規化
-        normalOS = normalize(normalOS);
-    }*/
-
-
     output.positionCS = TransformWorldToHClip(positionWS);
     output.positionSS = ComputeScreenPos(output.positionCS);
     return output;
@@ -136,18 +100,9 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 half4 FragmentProgram(VertexOutput input) : SV_Target
 {   
     half3 sceneColor = SampleSceneColor(
-        input.positionSS.xy / input.positionSS.w);
+        input.positionSS.xy / input.positionSS.w);    
     
-    //return half4(lerp(sceneColor, half3(1.0, 0.0, 0.0),  input.displayWeight), 1.0);
-    return half4(lerp(sceneColor, input.applyLittingColor,  input.displayWeight), 1.0);
-
-    //half3 vertexLight = VertexLighting(vertexInput.positionWS, normalInput.normalWS);
-    //half3 VertexLighting(float3 positionWS, half3 normalWS)
-    /*if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_VERTEX_LIGHTING))
-    {
-        lightingColor += lightingData.vertexLightingColor;
-    }
-    lightingColor *= albedo;*/
+    return half4(lerp(sceneColor, input.applyLittingColor, input.displayWeight), 1.0);
 }
 
 #endif //GRASS_IMPL_INCLUDED
