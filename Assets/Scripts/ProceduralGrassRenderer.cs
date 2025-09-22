@@ -325,16 +325,6 @@ namespace SB.ProceduralGrass
             wrap = windInfo.m_windWrap;
             m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_windCTilingWrap, new Vector4(
                 tiling.x, tiling.y, wrap.x, wrap.y));
-
-
-            //public static readonly int msr_windWeight = Shader.PropertyToID("_WindWeight");
-            //public static readonly int msr_WindAParams = Shader.PropertyToID("_WindAParams");
-            //public static readonly int msr_windATilingWrap = Shader.PropertyToID("_WindATilingWrap");
-            //public static readonly int msr_WindBParams = Shader.PropertyToID("_WindBParams");
-            //public static readonly int msr_windBTilingWrap = Shader.PropertyToID("_WindBTilingWrap");
-            //public static readonly int msr_WindCParams = Shader.PropertyToID("_WindCParams");
-            //public static readonly int msr_windCTilingWrap = Shader.PropertyToID("_WindCTilingWrap");
-
         }
 
         //private Mesh GetGrassMesh()
@@ -381,9 +371,12 @@ namespace SB.ProceduralGrass
             Vector3[] normals = new Vector3[4];
 
             // 底部三個點法線都指向下方
-            normals[0] = Vector3.down;
-            normals[1] = Vector3.down;
-            normals[2] = Vector3.down;
+            //normals[0] = Vector3.down;
+            //normals[1] = Vector3.down;
+            //normals[2] = Vector3.down;
+            normals[0] = Vector3.right;
+            normals[1] = Vector3.right;
+            normals[2] = Vector3.right;
 
             // 頂點的法線：取三個側面法線平均
             Vector3 n0 = Vector3.Cross(verts[3] - verts[0], verts[1] - verts[0]).normalized;

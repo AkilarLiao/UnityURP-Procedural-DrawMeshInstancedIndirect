@@ -22,6 +22,13 @@ Shader "Hidden/SB/Grass"
             HLSLPROGRAM
             #pragma vertex VertexProgram
             #pragma fragment FragmentProgram
+
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fog
+
             #include "GrassImpl.hlsl"
             ENDHLSL
         }
