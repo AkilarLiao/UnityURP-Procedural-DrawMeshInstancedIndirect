@@ -7,6 +7,14 @@
 #ifndef WEIGHT_MAP_UTILITY_INCLUDED
 #define WEIGHT_MAP_UTILITY_INCLUDED
 
+struct GrassInstanceData
+{
+    float2 position2D;
+    half2 sizeFactor;
+    half yawRadian;
+    half wind;
+};
+
 //x,y is min
 //z,w is max
 float4 _WorldMinMax;

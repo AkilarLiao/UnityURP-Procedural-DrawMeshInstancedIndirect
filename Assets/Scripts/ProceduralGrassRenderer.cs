@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using static SB.ProceduralGrass.ProceduralGrassData;
 
 namespace SB.ProceduralGrass
 {
@@ -55,23 +54,21 @@ namespace SB.ProceduralGrass
 
             m_targetProceduralInstanceFilterCS = internalResource.m_proceduralInstanceFilterCS;
 
-            if (m_visibleInstancesTransformBuffer != null)
+            if (m_visibleInstanceBuffer != null)
             {
-                m_visibleInstancesTransformBuffer.Release();
-                m_visibleInstancesTransformBuffer.Dispose();
-            }            
+                m_visibleInstanceBuffer.Release();
+                m_visibleInstanceBuffer.Dispose();
+            }
 
-            m_visibleInstancesTransformBuffer = new ComputeBuffer((int)mc_maxVisibleInstanceCount,
-                Marshal.SizeOf(typeof(Vector3)), ComputeBufferType.Append);
+            m_visibleInstanceBuffer = new ComputeBuffer((int)mc_maxVisibleInstanceCount,
+                Marshal.SizeOf(typeof(GrassInstanceData)), ComputeBufferType.Append);
 
-            m_targetProceduralInstanceFilterCS.SetBuffer(0, msr_visibleInstancesTransformBufferID,
-                m_visibleInstancesTransformBuffer);
-
-            //m_grassMaterial.SetBuffer(msr_visibleInstancesTransformBufferID, m_visibleInstancesTransformBuffer);
+            m_targetProceduralInstanceFilterCS.SetBuffer(0, msr_visibleInstanceBufferID,
+                m_visibleInstanceBuffer);            
 
             m_indirectArgumentsBuffer = new ComputeBuffer(1, ms_tempIndirectArguments.Length * sizeof(uint),
                 ComputeBufferType.IndirectArguments);
-
+            
             var grassMesh = GetGrassConeMeshCache();
             int subMeshIndex = Mathf.Clamp(0, 0, grassMesh.subMeshCount - 1);
 
@@ -109,11 +106,11 @@ namespace SB.ProceduralGrass
                 m_visibleCellIndexBuffer = null;
             }
 
-            if (m_visibleInstancesTransformBuffer != null)
+            if (m_visibleInstanceBuffer != null)
             {
-                m_visibleInstancesTransformBuffer.Release();
-                m_visibleInstancesTransformBuffer.Dispose();
-                m_visibleInstancesTransformBuffer = null;
+                m_visibleInstanceBuffer.Release();
+                m_visibleInstanceBuffer.Dispose();
+                m_visibleInstanceBuffer = null;
             }
 
             if (m_indirectArgumentsBuffer != null)
@@ -166,14 +163,14 @@ namespace SB.ProceduralGrass
             m_targetProceduralInstanceFilterCS.SetMatrix(ProceduralInstanceFilterID.msr_viewProjectionMatrix,
                 camera.projectionMatrix * camera.worldToCameraMatrix);
 
-            m_visibleInstancesTransformBuffer.SetCounterValue(0);
+            m_visibleInstanceBuffer.SetCounterValue(0);
 
             ref uint2 cellInstanceColumnRowCount = ref m_proceduralGrassData.m_cellInstanceColumnRowCount;
             var processInstanceCount = cellInstanceColumnRowCount.x * cellInstanceColumnRowCount.y * visibleCellIndexCount;
 
             DispatchComputeInBatches(m_targetProceduralInstanceFilterCS, (int)processInstanceCount);
 
-            ComputeBuffer.CopyCount(m_visibleInstancesTransformBuffer, m_indirectArgumentsBuffer, 4);
+            ComputeBuffer.CopyCount(m_visibleInstanceBuffer, m_indirectArgumentsBuffer, 4);
 
             Graphics.DrawMeshInstancedIndirect(GetGrassConeMeshCache(), 0, m_grassMaterial, m_renderBound, m_indirectArgumentsBuffer,
                 0, null, ShadowCastingMode.Off, true, 0, camera);
@@ -197,19 +194,12 @@ namespace SB.ProceduralGrass
 
             Shader.SetGlobalFloat(msr_maxViewSquareDistanceID, maxViewDistance * maxViewDistance);
 
-            m_grassMaterial.SetFloat(GrassShaderID.msr_fadeStartSquareDistance, fadeStartDistance * fadeStartDistance);
+            m_grassMaterial.SetFloat(GrassShaderID.msr_fadeStartSquareDistance, fadeStartDistance * fadeStartDistance);           
             
-            var widthSizeInfo = m_proceduralGrassData.m_widthSizeInfo;
-            m_grassMaterial.SetVector(GrassShaderID.msr_widthSizeInfo,
-                new Vector3(widthSizeInfo.m_size, widthSizeInfo.m_minSizeOffest,
-                widthSizeInfo.m_maxSizeOffest));
 
-            var heightSizeInfo = m_proceduralGrassData.m_heightSizeInfo;
-            m_grassMaterial.SetVector(GrassShaderID.msr_heightSizeInfo,
-                new Vector3(heightSizeInfo.m_size, heightSizeInfo.m_minSizeOffest,
-                heightSizeInfo.m_maxSizeOffest));
+            m_grassMaterial.SetTexture(GrassShaderID.msr_ColorTexture, m_proceduralGrassData.m_grassColorTexture);
 
-            m_grassMaterial.SetBuffer(msr_visibleInstancesTransformBufferID, m_visibleInstancesTransformBuffer);
+            m_grassMaterial.SetBuffer(msr_visibleInstanceBufferID, m_visibleInstanceBuffer);
 
             ref Rect worldRect = ref m_proceduralGrassData.m_worldRect;
 
@@ -245,6 +235,17 @@ namespace SB.ProceduralGrass
                     m_visibleCellIndexBuffer);
             }
 
+            var widthSizeInfo = m_proceduralGrassData.m_widthSizeInfo;
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_widthSizeInfo,
+                new Vector3(widthSizeInfo.m_size, widthSizeInfo.m_minSizeOffest,
+                widthSizeInfo.m_maxSizeOffest));
+
+            var heightSizeInfo = m_proceduralGrassData.m_heightSizeInfo;
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_heightSizeInfo,
+                new Vector3(heightSizeInfo.m_size, heightSizeInfo.m_minSizeOffest,
+                heightSizeInfo.m_maxSizeOffest));
+
+
             m_cellSize = new Vector2(worldRect.width / cellColumnRowCount.x,
                 worldRect.height / cellColumnRowCount.y);
 
@@ -275,6 +276,23 @@ namespace SB.ProceduralGrass
                 maxSize);
         }
 
+        //private Mesh GetGrassMesh()
+        //{
+        //    if(m_cachedGrassMesh)
+        //        return m_cachedGrassMesh;
+            
+        //    m_cachedGrassMesh = new Mesh();
+        //    Vector3[] verts = new Vector3[3];
+        //    verts[0] = new Vector3(-mc_grassMeshWidth, 0.0f, 0.0f);
+        //    verts[1] = new Vector3(mc_grassMeshWidth, 0.0f, 0.0f);
+        //    verts[2] = new Vector3(0.0f, 1.0f, 0.0f);
+
+        //    m_cachedGrassMesh.SetVertices(verts);
+        //    m_cachedGrassMesh.SetTriangles(new int[3] { 2, 1, 0, }, 0);
+
+        //    return m_cachedGrassMesh;
+        //}
+
         private Mesh GetGrassConeMeshCache()
         {
             if (m_cachedGrassMesh)
@@ -287,7 +305,6 @@ namespace SB.ProceduralGrass
             verts[0] = new Vector3(-mc_grassMeshWidth, 0, -mc_grassMeshWidth);    // Base vertex 1
             verts[1] = new Vector3(mc_grassMeshWidth, 0, -mc_grassMeshWidth);     // Base vertex 2
             verts[2] = new Vector3(0, 0, mc_grassMeshWidth);                     // Base vertex 3
-
             verts[3] = new Vector3(0, 1, 0);                                    // Top vertex
 
             // Triangles: one base + three sides
@@ -299,12 +316,26 @@ namespace SB.ProceduralGrass
                 2, 3, 0  // Side 3
             };
 
+            // Normals
+            Vector3[] normals = new Vector3[4];
+
+            // 底部三個點法線都指向下方
+            normals[0] = Vector3.down;
+            normals[1] = Vector3.down;
+            normals[2] = Vector3.down;
+
+            // 頂點的法線：取三個側面法線平均
+            Vector3 n0 = Vector3.Cross(verts[3] - verts[0], verts[1] - verts[0]).normalized;
+            Vector3 n1 = Vector3.Cross(verts[3] - verts[1], verts[2] - verts[1]).normalized;
+            Vector3 n2 = Vector3.Cross(verts[3] - verts[2], verts[0] - verts[2]).normalized;
+            normals[3] = ((n0 + n1 + n2) / 3).normalized;
+
             m_cachedGrassMesh.SetVertices(verts);
+            m_cachedGrassMesh.SetNormals(normals);
             m_cachedGrassMesh.SetTriangles(triangles, 0);
 
             return m_cachedGrassMesh;
         }
-
 
         /// <summary>
         /// Dispatches a ComputeShader in batches, supporting more than 65535 thread groups.
@@ -360,7 +391,7 @@ namespace SB.ProceduralGrass
         private ComputeBuffer m_visibleCellIndexBuffer = null;
         private Vector2 m_cellSize = Vector2.one;
         
-        private ComputeBuffer m_visibleInstancesTransformBuffer;
+        private ComputeBuffer m_visibleInstanceBuffer;
 
         private VisableCellsCuller m_visableCellsCuller = new VisableCellsCuller();
 
@@ -372,7 +403,8 @@ namespace SB.ProceduralGrass
         private static readonly Vector2 msr_worldMinMaxHeight = new Vector2(0.0f, 10.0f);
 
         private static readonly int msr_worldMinMaxID = Shader.PropertyToID("_WorldMinMax");
-        private static readonly int msr_visibleInstancesTransformBufferID = Shader.PropertyToID("_VisibleInstancesTransformBuffer");
+
+        private static readonly int msr_visibleInstanceBufferID = Shader.PropertyToID("_VisibleInstanceBuffer");
         private static readonly int msr_maxViewSquareDistanceID = Shader.PropertyToID("_MaxViewSquareDistance");
         private static class ProceduralInstanceFilterID
         {
@@ -387,21 +419,29 @@ namespace SB.ProceduralGrass
             public static readonly int msr_jitterStrength = Shader.PropertyToID("_JitterStrength");
             public static readonly int msr_InstanceSpacing = Shader.PropertyToID("_InstanceSpacing");
             public static readonly int msr_maxInstanceSize = Shader.PropertyToID("_MaxInstanceSize");
-            public static readonly int msr_cameraPosition = Shader.PropertyToID("_CameraPosition");            
+            public static readonly int msr_cameraPosition = Shader.PropertyToID("_CameraPosition");
+
+            public static readonly int msr_widthSizeInfo = Shader.PropertyToID("_WidthSizeInfo");
+            public static readonly int msr_heightSizeInfo = Shader.PropertyToID("_HeightSizeInfo");
         }
 
         private static class GrassShaderID
         {
-            public static readonly int msr_fadeStartSquareDistance = Shader.PropertyToID("_FadeStartSquareDistance");
-            public static readonly int msr_widthSizeInfo = Shader.PropertyToID("_WidthSizeInfo");
-            public static readonly int msr_heightSizeInfo = Shader.PropertyToID("_HeightSizeInfo");
+            public static readonly int msr_fadeStartSquareDistance = Shader.PropertyToID("_FadeStartSquareDistance");            
+            public static readonly int msr_ColorTexture = Shader.PropertyToID("_ColorTexture");
         }
 
         private const float mc_grassMeshWidth = 0.25f;
 
         private const uint mc_maxVisibleInstanceCount = 1000000;
-
-
         
+
+        private struct GrassInstanceData
+        {
+            public Vector2 position2D;
+            public Vector2 sizeFactor;
+            public float yawRadian;
+            public float wind;
+        }
     }
 }

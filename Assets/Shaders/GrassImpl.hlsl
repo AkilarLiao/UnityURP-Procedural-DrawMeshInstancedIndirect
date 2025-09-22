@@ -7,90 +7,54 @@
 #ifndef GRASS_IMPL_INCLUDED
 #define GRASS_IMPL_INCLUDED
 
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
+//#include "GrassTransform.hlsl"
 #include "WeightMapUtility.hlsl"
-#include "SimplexNoise.hlsl"
 
-static const float sc_widthWorldScale = 100.0;
-static const float sc_heightWorldScale = 200.0;
-static const float sc_noiseScale = 500.0;
+
+
 
 struct VertexInput
 {
     float4 positionOS : POSITION;
+    half3 normalOS : NORMAL;
     float2 texcoordOS : TEXCOORD0;
 };
 
 struct VertexOutput
 {
     //real2 baseUV : TEXCOORD0;
-    float4 positionCS   : SV_POSITION;    
-    half displayWeight  : TEXCOORD0;
-    float4 positionSS   : TEXCOORD1;
+    float4 positionCS       : SV_POSITION;    
+    half displayWeight      : TEXCOORD0;
+    half3 applyLittingColor : TEXCOORD1;
+    float4 positionSS       : TEXCOORD2;
 };
 
-//TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
+TEXTURE2D(_ColorTexture); SAMPLER(sampler_ColorTexture);
+
+
 CBUFFER_START(UnityPerMaterial)
 //float4 _MainTex_ST;
-StructuredBuffer<float3> _VisibleInstancesTransformBuffer;
+StructuredBuffer<GrassInstanceData> _VisibleInstanceBuffer;
 float _FadeStartSquareDistance;
 
 //x:baseSize
 //y:minSizeOffest
 //z:maxSizeOffest
-float3 _WidthSizeInfo;
-float3 _HeightSizeInfo;
+//float3 _WidthSizeInfo;
+//float3 _HeightSizeInfo;
 CBUFFER_END
-
-float2 GetDestBaseSize(in float2 position2D, in float2 sourceSize)
-{
-//#if !defined(PROCESS_SIZE_WITH_WEIGHT_MAP)
-    return sourceSize;
-//#endif
-    /*
-    half4 weightColor = SAMPLE_TEXTURE2D_LOD(_WeightMap,
-        sampler_WeightMap, GetGroundUV(position2D),0);
-
-    half destWeight = max(weightColor.r, weightColor.g);
-    destWeight = max(destWeight, weightColor.b);
-    destWeight = max(destWeight, weightColor.a);
-
-    return sourceSize * destWeight;
-    */
-}
-
-float2 GetDestSize(in float2 position2D//, 
-    //x:baseSize
-    //y:minSizeOffest
-    //z:maxSizeOffest
-    // in float3 widthSizeInfo,
-    // in float3 heightSizeInfo)
-    )
-{   
-    float2 baseSize = GetDestBaseSize(position2D,
-        float2(_WidthSizeInfo.x, _HeightSizeInfo.x));
-
-    float sizeOffest = sc_noiseScale *
-        GetSimplexNoise(position2D * sc_widthWorldScale);
-    float destWidth = clamp(baseSize.x + sizeOffest,
-        baseSize.x - _WidthSizeInfo.y,
-        baseSize.x + _WidthSizeInfo.z);
-
-    sizeOffest = sc_noiseScale *
-        GetSimplexNoise(position2D * sc_heightWorldScale);
-    float destHeight = clamp(baseSize.y + sizeOffest,
-        baseSize.y - _HeightSizeInfo.y,
-        baseSize.y + _HeightSizeInfo.z);
-
-    return float2(destWidth, destHeight);
-}
 
 VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 {
     VertexOutput output;    
 
-    float3 transform = _VisibleInstancesTransformBuffer[instanceID];
+    GrassInstanceData grassInstanceData = _VisibleInstanceBuffer[instanceID];
+
+    //float3 transform = _VisibleInstanceBuffer[instanceID];
+
+    float3 transform = float3(grassInstanceData.position2D, grassInstanceData.yawRadian);
+
     float3 instancePositoin = float3(transform.x, 0.0, transform.y);
 
     float3 viewPositionWS = TransformWorldToView(instancePositoin);
@@ -100,19 +64,76 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     output.displayWeight = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) / 
         (_MaxViewSquareDistance - _FadeStartSquareDistance);
 
-    float2 sizeFactor = GetDestSize(instancePositoin.xz);
+    //float2 sizeFactor = GetDestSize(instancePositoin.xz);
+    float2 sizeFactor = grassInstanceData.sizeFactor;
 
     // 用 sizeFactor 對局部頂點做 XZ 方向縮放
-    float3 scaledOS = float3(
+    float3 destPositionOS = float3(
         input.positionOS.x * sizeFactor.x,
         input.positionOS.y * sizeFactor.y,
         input.positionOS.z * sizeFactor.x);
-    
-    float3 positionWS = instancePositoin + scaledOS;
+
+    // 建立繞 Y 軸的旋轉
+    float s = sin(transform.z);
+    float c = cos(transform.z);
+    destPositionOS = float3(
+        destPositionOS.x * c - destPositionOS.z * s,
+        destPositionOS.y,
+        destPositionOS.x * s + destPositionOS.z * c
+        );    
+
+    float3 positionWS = instancePositoin + destPositionOS;
+
+    // 旋轉 normal
+    half3 normalOS = input.normalOS;
+    half3 normalWS = float3(
+        normalOS.x * c - normalOS.z * s,
+        normalOS.y,
+        normalOS.x * s + normalOS.z * c
+        );
+
+    output.applyLittingColor = normalWS * 0.5 + 0.5;
+
+    /*
+    // 原本 normal
+    float3 normalOS = input.normalOS;
+
+    // 風力方向（xz）
+    float2 windDir = normalize(float2(fx, fz));
+
+    // 風力強度
+    float windForce = 2.0;
+
+    // 把 normal 稍微「傾斜」一點
+    float3 windNormal = normalOS + float3(windDir.x, 0, windDir.y) * windForce * factor;
+
+    // factor 可依據頂點高度（比如頂端影響最大，底部不動）
+    float factor = saturate(input.positionOS.y / 草的高度);
+
+    // 最後正規化
+    windNormal = normalize(windNormal);
+    */
+
+    /*void ApplyWindOffsetToNormal(
+        in float localOSYalue,
+        in float3 cameraTransformRightWS,
+        in float wind,
+        inout float3 normalOS)
+    {
+        // 讓 normal 稍微傾斜一點
+        // 0.5是讓法線偏移不要太大，你可以自行調整
+        float windNormalFactor = 0.5;
+
+        // normal 主要是Y向上，加一點 wind 方向
+        normalOS += cameraTransformRightWS * wind * localOSYalue * windNormalFactor;
+
+        // 最後正規化
+        normalOS = normalize(normalOS);
+    }*/
+
 
     output.positionCS = TransformWorldToHClip(positionWS);
     output.positionSS = ComputeScreenPos(output.positionCS);
-    
     return output;
 }
 
@@ -121,7 +142,16 @@ half4 FragmentProgram(VertexOutput input) : SV_Target
     half3 sceneColor = SampleSceneColor(
         input.positionSS.xy / input.positionSS.w);
     
-    return half4(lerp(sceneColor, half3(1.0, 0.0, 0.0),  input.displayWeight), 1.0);
+    //return half4(lerp(sceneColor, half3(1.0, 0.0, 0.0),  input.displayWeight), 1.0);
+    return half4(lerp(sceneColor, input.applyLittingColor,  input.displayWeight), 1.0);
+
+    //half3 vertexLight = VertexLighting(vertexInput.positionWS, normalInput.normalWS);
+    //half3 VertexLighting(float3 positionWS, half3 normalWS)
+    /*if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_VERTEX_LIGHTING))
+    {
+        lightingColor += lightingData.vertexLightingColor;
+    }
+    lightingColor *= albedo;*/
 }
 
 #endif //GRASS_IMPL_INCLUDED

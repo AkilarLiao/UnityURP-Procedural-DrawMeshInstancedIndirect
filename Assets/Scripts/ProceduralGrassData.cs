@@ -31,11 +31,12 @@ namespace SB.ProceduralGrass
 
         [UnityEditor.MenuItem("Assets/Create/Procedural Grass Data")]
         public static void CreateProceduralGrassData()
-        {
-            // 建立 ScriptableObject 實例
+        {   
             ProceduralGrassData asset = ScriptableObject.CreateInstance<ProceduralGrassData>();
 
-            // 設定儲存路徑
+            asset.m_grassColorTexture = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(
+                "Assets/Textures/GrassGround.png");
+
             string path = UnityEditor.AssetDatabase.GetAssetPath(UnityEditor.Selection.activeObject);
             if (string.IsNullOrEmpty(path))
             {
@@ -47,13 +48,11 @@ namespace SB.ProceduralGrass
             }
 
             string assetPathAndName = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(path + "/ProceduralGrassData.asset");
-
-            // 建立 asset
+            
             UnityEditor.AssetDatabase.CreateAsset(asset, assetPathAndName);
             UnityEditor.AssetDatabase.SaveAssets();
             UnityEditor.AssetDatabase.Refresh();
-
-            // 選取新建立的 asset
+            
             UnityEditor.EditorUtility.FocusProjectWindow();
             UnityEditor.Selection.activeObject = asset;
         }
@@ -79,6 +78,9 @@ namespace SB.ProceduralGrass
         [Range(20.0f, 1000.0f)]
         public float m_fadeEndDistance = 300.0f;
 
+        [Tooltip("grass color texture")]
+        public Texture2D m_grassColorTexture = null;
+
         [System.Serializable, ReloadGroup]
         public sealed class InternalResource
         {
@@ -87,7 +89,7 @@ namespace SB.ProceduralGrass
             [Reload("Shaders/ProceduralInstanceFilter.compute")]
             public ComputeShader m_proceduralInstanceFilterCS = null;
         }
-        //[HideInInspector]
+        [HideInInspector]
         public InternalResource m_internalResource = null;
 
 
