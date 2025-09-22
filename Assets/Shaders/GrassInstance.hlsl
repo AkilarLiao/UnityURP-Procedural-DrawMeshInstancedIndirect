@@ -4,8 +4,8 @@
 /// Desc:
 /// </summary>
 
-#ifndef WEIGHT_MAP_UTILITY_INCLUDED
-#define WEIGHT_MAP_UTILITY_INCLUDED
+#ifndef GRASS_INSTANCE_INCLUDED
+#define GRASS_INSTANCE_INCLUDED
 
 struct GrassInstanceData
 {
@@ -27,4 +27,4 @@ half2 GetWorldUV(in float2 worldPosition2D)
 		(clmapPosition2D.y - _WorldMinMax.y) / (_WorldMinMax.w - _WorldMinMax.y));
 }
 
-#endif //WEIGHT_MAP_UTILITY_INCLUDED
+#endif //GRASS_INSTANCE_INCLUDED

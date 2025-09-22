@@ -8,11 +8,7 @@
 #define GRASS_IMPL_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
-//#include "GrassTransform.hlsl"
-#include "WeightMapUtility.hlsl"
-
-
-
+#include "GrassInstance.hlsl"
 
 struct VertexInput
 {
