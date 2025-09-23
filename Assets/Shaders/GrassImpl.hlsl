@@ -7,6 +7,8 @@
 #ifndef GRASS_IMPL_INCLUDED
 #define GRASS_IMPL_INCLUDED
 
+#define _SPECULAR_COLOR
+
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "GrassInstance.hlsl"
@@ -23,8 +25,8 @@ struct VertexOutput
     float4 positionCS       : SV_POSITION;
     float3 positionWS       : TEXCOORD0;
     half3 normalWS          : TEXCOORD1;
-    half4 albedoColor       : TEXCOORD2;
-    half3 vertexSH          : TEXCOORD3;
+    half4 albedoColor       : TEXCOORD2;    
+    half4 lightParams       : TEXCOORD3;
     float4 positionSS       : TEXCOORD4;
 #ifdef _ADDITIONAL_LIGHTS_VERTEX
     half4 fogFactorAndVertexLight  : TEXCOORD5; // x: fogFactor, yzw: vertex light
@@ -44,6 +46,7 @@ StructuredBuffer<GrassInstanceData> _VisibleInstanceBuffer;
 float _FadeStartSquareDistance;
 half2 _WindDirection;
 half _FadeGroundPow;
+half4 _SpecularColor;
 CBUFFER_END
 
 void CalculateNormal(in VertexInput input, in float sinValue, in float cosValue, in half2 windOffest,
@@ -75,7 +78,8 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 
     float clampViewSquareDistance = clamp(viewSquareDistance, _FadeStartSquareDistance, _MaxViewSquareDistance);
     output.albedoColor.a = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) /
-        (_MaxViewSquareDistance - _FadeStartSquareDistance);
+        (_MaxViewSquareDistance - _FadeStartSquareDistance);    
+
     output.albedoColor.a *= input.positionOS.y;
 
     float2 sizeFactor = grassInstanceData.sizeFactor;
@@ -102,16 +106,11 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     
     CalculateNormal(input, sinValue, cosValue, windOffest, output.normalWS);
     
-    //output.albedoColor.rgb = output.normalWS * 0.5 + 0.5;
     output.albedoColor.rgb = SAMPLE_TEXTURE2D_LOD(_ColorTexture, sampler_ColorTexture,
         position2D, 0).rgb;
 
-    TEXTURE2D(_ColorTexture); SAMPLER(sampler_ColorTexture);
-
-
     output.positionCS = TransformWorldToHClip(positionWS);
     output.positionSS = ComputeScreenPos(output.positionCS);
-
 
 #if defined(_FOG_FRAGMENT)
     half fogFactor = 0;
@@ -133,9 +132,9 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     output.shadowCoord = TransformWorldToShadowCoord(output.positionWS);
 #endif //_MAIN_LIGHT_SHADOWS_SCREEN
 #endif //REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR
-
-    output.vertexSH = SampleSHVertex(output.normalWS);
-
+    
+    output.lightParams.xyz = SampleSHVertex(output.normalWS);
+    output.lightParams.w = input.positionOS.y;
     return output;
 }
 
@@ -162,7 +161,7 @@ void InitializeInputData(in VertexOutput input, out InputData inputData)
     inputData.vertexLighting = half3(0, 0, 0);
 #endif
 
-    inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, input.vertexSH, inputData.normalWS);
+    inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, input.lightParams.xyz, inputData.normalWS);
 
     inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
     inputData.shadowMask = half4(1, 1, 1, 1);
@@ -173,13 +172,12 @@ void GetSurfaceData(in VertexOutput input, out SurfaceData surfaceData)
     surfaceData = (SurfaceData)0;
     surfaceData.albedo = input.albedoColor.rgb;
     surfaceData.alpha = input.albedoColor.a;
-    surfaceData.occlusion = 1.0;
+    surfaceData.occlusion = 1.0;    
+    surfaceData.specular = _SpecularColor.rgb * pow(input.lightParams.w, _SpecularColor.a);
 }
 
 half4 FragmentProgram(VertexOutput input) : SV_Target
-{   
-    //half4 UniversalFragmentBlinnPhong(InputData inputData, SurfaceData surfaceData)
-
+{    
     InputData inputData;
     InitializeInputData(input, inputData);
 
@@ -187,7 +185,7 @@ half4 FragmentProgram(VertexOutput input) : SV_Target
     GetSurfaceData(input, surfaceData);
 
     half3 applyLightResult = UniversalFragmentBlinnPhong(inputData, surfaceData).rgb;
-
+    
     half3 sceneColor = SampleSceneColor(
         input.positionSS.xy / input.positionSS.w);    
     

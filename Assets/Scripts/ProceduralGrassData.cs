@@ -81,6 +81,13 @@ namespace SB.ProceduralGrass
         [Tooltip("The wind parameters.")]
         public WindParameters m_windParameters = new WindParameters();
 
+        [Tooltip("The specular color.")]
+        public Color m_specularColor = new Color(1.0f, 1.0f, 0.5f, 1.0f);
+
+        [Tooltip("The specular weight pow.")]
+        [Range(1.0f, 32.0f)]
+        public float m_specularWeightPow = 4.0f;
+
         [Tooltip("grass color texture")]
         public Texture2D m_grassColorTexture = null;
 
@@ -134,33 +141,6 @@ namespace SB.ProceduralGrass
             [Tooltip("The third wind info.")]
             public WindInfo m_windInfoC = new WindInfo(0.125f, 4.0f,
                 new Vector2(0.77f, 3.0f), new Vector2(0.5f, 0.5f));
-
-            //Sample.
-            /*[Tooltip("The first wind info.")]
-            public WindInfo m_windInfoA = new WindInfo(1.77, 4,
-                new Vector2(0.1f, 0.1f), new Vector2(0.5f, 0.5f));
-
-            [Tooltip("The second wind info.")]
-            public WindInfo m_windInfoB = new WindInfo(0.25f, 7.7,
-                new Vector2(0.37f, 3.0f), new Vector2(0.5f, 0.5f));
-
-            [Tooltip("The third wind info.")]
-            public WindInfo m_windInfoC = new WindInfo(0.125f, 11.7,
-                new Vector2(0.77f, 3.0f), new Vector2(0.5f, 0.5f));
-            */
-
-            //Origion.
-            /*[Tooltip("The first wind info.")]
-            public WindInfo m_windInfoA = new WindInfo(1.77, 4,
-                new Vector2(0.1f, 0.1f), new Vector2(0.5f, 0.5f));
-
-            [Tooltip("The second wind info.")]
-            public WindInfo m_windInfoB = new WindInfo(0.25f, 7.7,
-                new Vector2(0.37f, 3.0f), new Vector2(0.5f, 0.5f));
-
-            [Tooltip("The third wind info.")]
-            public WindInfo m_windInfoC = new WindInfo(0.125f, 11.7,
-                new Vector2(0.77f, 3.0f), new Vector2(0.5f, 0.5f));*/
         }
 
         [System.Serializable]
