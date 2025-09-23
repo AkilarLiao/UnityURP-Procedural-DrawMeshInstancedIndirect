@@ -36,10 +36,14 @@ struct VertexOutput
 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
     float4 shadowCoord             : TEXCOORD6;
 #endif
+    half3 normalOS                 : TEXCOORD7;
+    half2 rotateValue              : TEXCOORD8;
 };
 
 TEXTURE2D(_ColorTexture); SAMPLER(sampler_ColorTexture);
 
+TEXTURE2D(_TextureWindWaveMap);  SAMPLER(sampler_TextureWindWaveMap);
+TEXTURE2D(_TextureWindNormalMap); SAMPLER(sampler_TextureWindNormalMap);
 
 CBUFFER_START(UnityPerMaterial)
 StructuredBuffer<GrassInstanceData> _VisibleInstanceBuffer;
@@ -47,6 +51,7 @@ float _FadeStartSquareDistance;
 half2 _WindDirection;
 half _FadeGroundPow;
 half4 _SpecularColor;
+half _WindNormalWeight;
 CBUFFER_END
 
 void CalculateNormal(in VertexInput input, in float sinValue, in float cosValue, in half2 windOffest,
@@ -56,16 +61,15 @@ void CalculateNormal(in VertexInput input, in float sinValue, in float cosValue,
         input.normalOS.x * cosValue - input.normalOS.z * sinValue,
         input.normalOS.y,
         input.normalOS.x * sinValue + input.normalOS.z * cosValue);
-
-    half windNormalFactor = 0.25;
-    half2 scaleWindOffest = windOffest * windNormalFactor;
+    
+    half2 scaleWindOffest = windOffest * _WindNormalWeight * input.positionOS.y;
     normalWS += half3(scaleWindOffest.x, 0.0, scaleWindOffest.y);
     normalWS = normalize(normalWS);
 }
 
 VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 {
-    VertexOutput output;    
+    VertexOutput output;
 
     GrassInstanceData grassInstanceData = _VisibleInstanceBuffer[instanceID];
     
@@ -135,6 +139,9 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     
     output.lightParams.xyz = SampleSHVertex(output.normalWS);
     output.lightParams.w = input.positionOS.y;
+
+    output.normalOS = input.normalOS;
+    output.rotateValue = half2(grassInstanceData.yawSin, grassInstanceData.yawCos);
     return output;
 }
 
@@ -177,7 +184,7 @@ void GetSurfaceData(in VertexOutput input, out SurfaceData surfaceData)
 }
 
 half4 FragmentProgram(VertexOutput input) : SV_Target
-{    
+{
     InputData inputData;
     InitializeInputData(input, inputData);
 

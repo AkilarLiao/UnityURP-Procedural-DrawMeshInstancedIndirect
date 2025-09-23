@@ -238,11 +238,11 @@ namespace SB.ProceduralGrass
             m_grassMaterial.SetVector(GrassShaderID.msr_specularColor, new Vector4(
                 specularColor.r, specularColor.g, specularColor.b, m_proceduralGrassData.m_specularWeightPow));
 
+            m_grassMaterial.SetFloat(GrassShaderID.msr_windNormalWeight, windParameters.m_windNormalWeight);
+
             m_grassMaterial.SetTexture(GrassShaderID.msr_ColorTexture, m_proceduralGrassData.m_grassColorTexture);
 
-            m_grassMaterial.SetBuffer(msr_visibleInstanceBufferID, m_visibleInstanceBuffer);
-
-            
+            m_grassMaterial.SetBuffer(msr_visibleInstanceBufferID, m_visibleInstanceBuffer);            
 
             ref Rect worldRect = ref m_proceduralGrassData.m_worldRect;
 
@@ -525,6 +525,7 @@ namespace SB.ProceduralGrass
             public static readonly int msr_ColorTexture = Shader.PropertyToID("_ColorTexture");
             public static readonly int msr_windDirection = Shader.PropertyToID("_WindDirection");
             public static readonly int msr_specularColor = Shader.PropertyToID("_SpecularColor");
+            public static readonly int msr_windNormalWeight = Shader.PropertyToID("_WindNormalWeight");            
         }
 
         private const float mc_grassMeshWidth = 0.25f;

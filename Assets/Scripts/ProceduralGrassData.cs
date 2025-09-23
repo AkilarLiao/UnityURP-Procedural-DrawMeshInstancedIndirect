@@ -79,7 +79,7 @@ namespace SB.ProceduralGrass
         public float m_fadeEndDistance = 300.0f;
         
         [Tooltip("The wind parameters.")]
-        public WindParameters m_windParameters = new WindParameters();
+        public WindParameters m_windParameters = new WindParameters();        
 
         [Tooltip("The specular color.")]
         public Color m_specularColor = new Color(1.0f, 1.0f, 0.5f, 1.0f);
@@ -130,6 +130,10 @@ namespace SB.ProceduralGrass
             [Range(0.0f, 360.0f)]
             public float m_windYawAngle = 0.0f;
 
+            [Tooltip("The wind normal weight.")]
+            [Range(0.0f, 1.0f)]
+            public float m_windNormalWeight = 0.25f;
+
             [Tooltip("The first wind info.")]
             public WindInfo m_windInfoA = new WindInfo(2.0f, 2.0f,
                 new Vector2(0.1f, 0.1f), new Vector2(0.5f, 0.5f));
@@ -142,6 +146,33 @@ namespace SB.ProceduralGrass
             public WindInfo m_windInfoC = new WindInfo(0.125f, 4.0f,
                 new Vector2(0.77f, 3.0f), new Vector2(0.5f, 0.5f));
         }
+
+
+        [System.Serializable]
+        public class TextureWindParameters
+        {
+            [Range(0.001f, 1.0f)]
+            public float m_windWorldScale = 0.01f;
+            [ColorUsage(false, false)]
+            public Color m_windWaveColor = new Color(1, 0.9739528f, 0.8915094f, 1);
+            [Range(0.0f, 2.0f)]
+            public float m_windWaveBrightness = 0.5f;
+            [Range(0.0f, 360.0f)]
+            public float m_windYawAngle = 270.0f;
+            [Range(0.01f, 1.0f)]
+            public float m_windSpeed = 0.04f;
+
+            [Reload("Textures/WindNoise.png")]
+            public Texture2D m_windWaveMap = null;
+            public Vector2 m_windWaveMapTile = new Vector2(1.5f, 5.0f);
+            [Reload("Textures/WindNormal.png")]
+            public Texture2D m_waveNormalMap = null;
+            public Vector2 m_waveNormalMapTile = new Vector2(3.0f, 2.0f);
+            [Range(0.001f, 2.0f)]
+            public float m_windWaveDetailBumpScale = 0.001f;
+        }
+
+
 
         [System.Serializable]
         public class WindInfo
