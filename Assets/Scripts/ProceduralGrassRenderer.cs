@@ -36,10 +36,19 @@ namespace SB.ProceduralGrass
 #endif //UNITY_EDITOR
             RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
             RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
+
+            if (m_targetDisplayFPS)
+            {
+                m_targetDisplayFPS.AppendExtendString -= AppendExtendStringCB;
+                m_targetDisplayFPS.AppendExtendString += AppendExtendStringCB;
+            }
         }
 
         private void OnDisable()
         {
+            if (m_targetDisplayFPS)
+                m_targetDisplayFPS.AppendExtendString -= AppendExtendStringCB;
+
             RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
 #if UNITY_EDITOR
             if (!Application.isPlaying)
@@ -93,6 +102,16 @@ namespace SB.ProceduralGrass
             m_indirectArgumentsBuffer.SetData(ms_tempIndirectArguments);
 
             RefreshParams();
+        }
+
+        private void Awake()
+        {
+            m_executeTimeProcessor.Start();
+        }
+
+        private void Start()
+        {
+            m_executeTime = m_executeTimeProcessor.StopGetMS();
         }
 
         private void Release()
@@ -428,6 +447,11 @@ namespace SB.ProceduralGrass
             }
         }
 
+        private void AppendExtendStringCB(ref string text)
+        {
+            text = string.Format("\n=============\nLoadTime:{0}S", m_executeTime / 1000.0f);
+        }
+
 #if UNITY_EDITOR
         private void EditUpdate()
         {
@@ -446,6 +470,8 @@ namespace SB.ProceduralGrass
 #endif
 
         public ProceduralGrassData m_proceduralGrassData = null;
+        [SerializeField]
+        private DisplayFPS m_targetDisplayFPS = null;
         
         private ComputeShader m_targetProceduralInstanceFilterCS = null;
 
@@ -463,6 +489,9 @@ namespace SB.ProceduralGrass
 
         private uint m_currentCellCount = 0;
         private ComputeBuffer m_indirectArgumentsBuffer;
+
+        private ExecuteTimeProcessor m_executeTimeProcessor = new ExecuteTimeProcessor();
+        private long m_executeTime = 0;
 
         private static uint[] ms_tempIndirectArguments = new uint[5] { 0, 0, 0, 0, 0 };
 
