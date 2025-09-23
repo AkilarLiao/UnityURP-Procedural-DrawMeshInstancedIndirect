@@ -26,12 +26,6 @@ namespace SB.ProceduralGrass
         {
             ReInitialize();
 #if UNITY_EDITOR
-            if (m_proceduralGrassData)
-            {
-                m_proceduralGrassData.OnProceduralGrassDataChange -= OnProceduralGrassDataChangeCB;
-                m_proceduralGrassData.OnProceduralGrassDataChange += OnProceduralGrassDataChangeCB;
-            }
-
             if (!Application.isPlaying)
             {
                 UnityEditor.EditorApplication.update -= EditUpdate;
@@ -48,9 +42,6 @@ namespace SB.ProceduralGrass
 #if UNITY_EDITOR
             if (!Application.isPlaying)
                 UnityEditor.EditorApplication.update -= EditUpdate;
-
-            if (m_proceduralGrassData)
-                m_proceduralGrassData.OnProceduralGrassDataChange -= OnProceduralGrassDataChangeCB;
 #endif //UNITY_EDITOR
             Release();
         }
@@ -199,11 +190,7 @@ namespace SB.ProceduralGrass
             Graphics.DrawMeshInstancedIndirect(GetGrassMesh(), 0, m_grassMaterial, m_renderBound, m_indirectArgumentsBuffer,
                 0, null, ShadowCastingMode.Off, true, 0, camera);
         }
-        private void OnProceduralGrassDataChangeCB()
-        {
-            //RefreshParams();
-        }
-
+        
         private void RefreshParams()
         {
             if ((!m_proceduralGrassData) || (!m_targetProceduralInstanceFilterCS) || (!m_grassMaterial))
@@ -222,13 +209,7 @@ namespace SB.ProceduralGrass
             m_grassMaterial.SetFloat(GrassShaderID.msr_fadeStartSquareDistance, fadeStartDistance * fadeStartDistance);
 
             var windParameters = m_proceduralGrassData.m_windParameters;
-
-            //public Vector2 GetMovementParams(float directionAngle)
-            //{
-            //    var rotation = Quaternion.Euler(0.0f, directionAngle, 0.0f);
-            //    var direction = rotation * Vector3.forward;
-            //    return new Vector2(direction.x, direction.z);
-            //}
+            
             var rotation = Quaternion.Euler(0.0f, windParameters.m_windYawAngle, 0.0f);
             var direction = rotation * Vector3.forward;
             m_grassMaterial.SetVector(GrassShaderID.msr_windDirection, new Vector2(direction.x, direction.z));

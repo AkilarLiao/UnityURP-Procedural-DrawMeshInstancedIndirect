@@ -11,10 +11,7 @@ using UnityEngine.Rendering;
 namespace SB.ProceduralGrass
 {   
     public class ProceduralGrassData : ScriptableObject
-    {
-        public delegate void OnProceduralGrassDataChangeCB();
-        public OnProceduralGrassDataChangeCB OnProceduralGrassDataChange { get; set; } =
-            null;
+    {   
         private void Awake()
         {
 #if UNITY_EDITOR
@@ -22,13 +19,7 @@ namespace SB.ProceduralGrass
 #endif
         }
 
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (OnProceduralGrassDataChange != null)
-                OnProceduralGrassDataChange();
-        }
-
+#if UNITY_EDITOR        
         [UnityEditor.MenuItem("Assets/Create/Procedural Grass Data")]
         public static void CreateProceduralGrassData()
         {   
