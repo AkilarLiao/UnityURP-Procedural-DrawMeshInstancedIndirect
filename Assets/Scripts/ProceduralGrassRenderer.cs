@@ -327,24 +327,17 @@ namespace SB.ProceduralGrass
             wrap = windInfo.m_windWrap;
             m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_windCTilingWrap, new Vector4(
                 tiling.x, tiling.y, wrap.x, wrap.y));
-        }
 
-        //private Mesh GetGrassMesh()
-        //{
-        //    if (m_cachedGrassMesh)
-        //        return m_cachedGrassMesh;
 
-        //    m_cachedGrassMesh = new Mesh();
-        //    Vector3[] verts = new Vector3[3];
-        //    verts[0] = new Vector3(-mc_grassMeshWidth, 0.0f, 0.0f);
-        //    verts[1] = new Vector3(mc_grassMeshWidth, 0.0f, 0.0f);
-        //    verts[2] = new Vector3(0.0f, 1.0f, 0.0f);
-
-        //    m_cachedGrassMesh.SetVertices(verts);
-        //    m_cachedGrassMesh.SetTriangles(new int[3] { 2, 1, 0, }, 0);
-
-        //    return m_cachedGrassMesh;
-        //}
+            if (m_isProcessWeightMapFilter)
+            {
+                m_targetProceduralInstanceFilterCS.EnableKeyword(mc_processWeightMapFilterKeyword);
+                m_targetProceduralInstanceFilterCS.SetTexture(0, ProceduralInstanceFilterID.msr_weightMap,
+                    m_proceduralGrassData.m_weightMap);
+            }
+            else
+                m_targetProceduralInstanceFilterCS.DisableKeyword(mc_processWeightMapFilterKeyword);
+        }        
 
         private Mesh GetGrassMesh()
         {
@@ -444,6 +437,10 @@ namespace SB.ProceduralGrass
         [Tooltip("Only show main camera view scope (for debug purpose).")]
         [SerializeField]
         private bool m_isOnlyViewMainCameraCulling = false;
+
+        [Tooltip("Process Weight Map Filter flag")]
+        [SerializeField]
+        private bool m_isProcessWeightMapFilter = true;
 #endif
 
         public ProceduralGrassData m_proceduralGrassData = null;
@@ -498,6 +495,8 @@ namespace SB.ProceduralGrass
             public static readonly int msr_WindCParams = Shader.PropertyToID("_WindCParams");
             public static readonly int msr_windCTilingWrap = Shader.PropertyToID("_WindCTilingWrap");
             public static readonly int msr_currentTime = Shader.PropertyToID("_CurrentTime");
+
+            public static readonly int msr_weightMap = Shader.PropertyToID("_WeightMap");
         }
 
         private static class GrassShaderID
@@ -512,7 +511,7 @@ namespace SB.ProceduralGrass
         private const float mc_grassMeshWidth = 0.25f;
 
         private const uint mc_maxVisibleInstanceCount = 1000000;
-        
+        private const string mc_processWeightMapFilterKeyword = "PROCESS_WEIGHT_MAP_FILTER";
 
         private struct GrassInstanceData
         {

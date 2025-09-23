@@ -6,6 +6,8 @@
 
 #pragma kernel CSMain
 
+#pragma multi_compile_local _ PROCESS_WEIGHT_MAP_FILTER
+
 #include "GrassInstance.hlsl"
 #include "SimplexNoise.hlsl"
 
@@ -15,10 +17,14 @@ static const half sc_heightWorldScale = 200.0;
 static const half sc_noiseScale = 500.0;
 static const float sc_PI = 3.1415927;
 static const float sc_towPI = 2.0 * sc_PI;
+static const float sc_skipWeightRatio = 0.3;
 
 
 StructuredBuffer<uint> _VisibleCellIndexBuffer;
 AppendStructuredBuffer<GrassInstanceData> _VisibleInstanceBuffer;
+
+SamplerState sampler_WeightMap;
+Texture2D<float4> _WeightMap;
 
 half2 _CellSize;
 uint _CellColumnCount;
@@ -71,42 +77,23 @@ float2 GetRandomOffest2D(in float2 point2D)
 	return frac((point3D.xx + point3D.yz) * point3D.zy);
 }
 
-
-float2 GetDestBaseSize(in float2 position2D, in float2 sourceSize)
+half2 GetDestSize(in float2 position2D, in half grassWeight)
 {
-	//#if !defined(PROCESS_SIZE_WITH_WEIGHT_MAP)
-	return sourceSize;
-	//#endif
-		/*
-		half4 weightColor = SAMPLE_TEXTURE2D_LOD(_WeightMap,
-			sampler_WeightMap, GetGroundUV(position2D),0);
+	half2 baseSize = half2(_WidthSizeInfo.x, _HeightSizeInfo.x) * grassWeight;
 
-		half destWeight = max(weightColor.r, weightColor.g);
-		destWeight = max(destWeight, weightColor.b);
-		destWeight = max(destWeight, weightColor.a);
-
-		return sourceSize * destWeight;
-		*/
-}
-
-float2 GetDestSize(in float2 position2D)
-{
-	float2 baseSize = GetDestBaseSize(position2D,
-		float2(_WidthSizeInfo.x, _HeightSizeInfo.x));
-
-	float sizeOffest = sc_noiseScale *
+	half sizeOffest = sc_noiseScale *
 		GetSimplexNoise(position2D * sc_widthWorldScale);
-	float destWidth = clamp(baseSize.x + sizeOffest,
+	half destWidth = clamp(baseSize.x + sizeOffest,
 		baseSize.x - _WidthSizeInfo.y,
 		baseSize.x + _WidthSizeInfo.z);
 
 	sizeOffest = sc_noiseScale *
 		GetSimplexNoise(position2D * sc_heightWorldScale);
-	float destHeight = clamp(baseSize.y + sizeOffest,
+	half destHeight = clamp(baseSize.y + sizeOffest,
 		baseSize.y - _HeightSizeInfo.y,
 		baseSize.y + _HeightSizeInfo.z);
 
-	return float2(destWidth, destHeight);
+	return half2(destWidth, destHeight);
 }
 
 half CalculateWind(in float2 position2D)
@@ -173,7 +160,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	float2 position2D;
 	half yawRadians;
-	GetInstanceTransform(instanceIndex, position2D, yawRadians);
+	GetInstanceTransform(instanceIndex, position2D, yawRadians);	
 
 	if ((position2D.x < _WorldMinMax.x) ||
 		(position2D.y < _WorldMinMax.y) ||
@@ -185,6 +172,13 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	float viewSquareDistance = dot(delta, delta);
 	if(viewSquareDistance > _MaxViewSquareDistance)
 		return;
+
+	half grassWeight = 1.0;
+#ifdef PROCESS_WEIGHT_MAP_FILTER
+	grassWeight = _WeightMap.SampleLevel(sampler_WeightMap, GetWorldUV(position2D), 0).r;
+	if (grassWeight <= sc_skipWeightRatio)
+		return;
+#endif
 
 	float4 absPosCS = abs(mul(_ViewProjectionMatrix,
 		float4(position2D.x, 0.0, position2D.y, 1.0)));
@@ -205,7 +199,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	grassInstanceData.yawSin = sin(yawRadians);
 	grassInstanceData.yawCos = cos(yawRadians);
 
-	grassInstanceData.sizeFactor = GetDestSize(grassInstanceData.position2D);
+	grassInstanceData.sizeFactor = GetDestSize(grassInstanceData.position2D, grassWeight);
 	
 	_VisibleInstanceBuffer.Append(grassInstanceData);	
 }

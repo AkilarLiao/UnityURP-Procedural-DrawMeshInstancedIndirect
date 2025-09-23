@@ -28,6 +28,9 @@ namespace SB.ProceduralGrass
             asset.m_grassColorTexture = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(
                 "Assets/Textures/GrassGround.png");
 
+            asset.m_weightMap = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(
+                "Assets/Textures/Test_WeightMap.png");
+
             string path = UnityEditor.AssetDatabase.GetAssetPath(UnityEditor.Selection.activeObject);
             if (string.IsNullOrEmpty(path))
             {
@@ -81,6 +84,9 @@ namespace SB.ProceduralGrass
 
         [Tooltip("grass color texture")]
         public Texture2D m_grassColorTexture = null;
+
+        [Tooltip("grass weight map")]
+        public Texture2D m_weightMap = null;
 
         [System.Serializable, ReloadGroup]
         public sealed class InternalResource
@@ -137,33 +143,6 @@ namespace SB.ProceduralGrass
             public WindInfo m_windInfoC = new WindInfo(0.125f, 4.0f,
                 new Vector2(0.77f, 3.0f), new Vector2(0.5f, 0.5f));
         }
-
-
-        [System.Serializable]
-        public class TextureWindParameters
-        {
-            [Range(0.001f, 1.0f)]
-            public float m_windWorldScale = 0.01f;
-            [ColorUsage(false, false)]
-            public Color m_windWaveColor = new Color(1, 0.9739528f, 0.8915094f, 1);
-            [Range(0.0f, 2.0f)]
-            public float m_windWaveBrightness = 0.5f;
-            [Range(0.0f, 360.0f)]
-            public float m_windYawAngle = 270.0f;
-            [Range(0.01f, 1.0f)]
-            public float m_windSpeed = 0.04f;
-
-            [Reload("Textures/WindNoise.png")]
-            public Texture2D m_windWaveMap = null;
-            public Vector2 m_windWaveMapTile = new Vector2(1.5f, 5.0f);
-            [Reload("Textures/WindNormal.png")]
-            public Texture2D m_waveNormalMap = null;
-            public Vector2 m_waveNormalMapTile = new Vector2(3.0f, 2.0f);
-            [Range(0.001f, 2.0f)]
-            public float m_windWaveDetailBumpScale = 0.001f;
-        }
-
-
 
         [System.Serializable]
         public class WindInfo
