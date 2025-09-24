@@ -10,8 +10,10 @@
 //#define _SPECULAR_COLOR
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
 #include "GrassInstance.hlsl"
+
+#include "LightFunctions.hlsl"
 
 struct VertexInput
 {
@@ -22,21 +24,9 @@ struct VertexInput
 
 struct VertexOutput
 {   
-    float4 positionCS       : SV_POSITION;
-    float3 positionWS       : TEXCOORD0;
-    half3 normalWS          : TEXCOORD1;
-    //half4 albedoColor       : TEXCOORD2;
-    half4 applyLightResult   : TEXCOORD2;
-    half4 lightParams       : TEXCOORD3;
-    float4 positionSS       : TEXCOORD4;
-#ifdef _ADDITIONAL_LIGHTS_VERTEX
-    half4 fogFactorAndVertexLight  : TEXCOORD5; // x: fogFactor, yzw: vertex light
-#else
-    half  fogFactor                 : TEXCOORD5;
-#endif
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-    float4 shadowCoord             : TEXCOORD6;
-#endif    
+    float4 positionCS               : SV_POSITION;    
+    half4 applyLightResult          : TEXCOORD0;    
+    float4 positionSS               : TEXCOORD1;
 };
 
 TEXTURE2D(_ColorTexture); SAMPLER(sampler_ColorTexture);
@@ -112,7 +102,6 @@ void ConverRatioPosition(inout float2 position2D)
     position2D.y = _WorldMinMax.y + position2D.y * (_WorldMinMax.w - _WorldMinMax.y);
 }
 
-
 void GetGrassInstanceData(in uint instanceID, out float2 position2D, out half2 sizeFactor, out half yawSin, out half yawCos,
     out half wind)
 {
@@ -127,47 +116,6 @@ void GetGrassInstanceData(in uint instanceID, out float2 position2D, out half2 s
     yawCos = data.y;
     wind = data.z;
 }
-
-void InitializeInputData(in VertexOutput input, out InputData inputData)
-{
-    inputData = (InputData)0;
-    inputData.positionWS = input.positionWS;
-    inputData.normalWS = NormalizeNormalPerPixel(input.normalWS);
-    inputData.viewDirectionWS = SafeNormalize(GetWorldSpaceNormalizeViewDir(inputData.positionWS));
-
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-    inputData.shadowCoord = input.shadowCoord;
-#elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-    inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
-#else
-    inputData.shadowCoord = float4(0, 0, 0, 0);
-#endif
-
-#ifdef _ADDITIONAL_LIGHTS_VERTEX
-    inputData.fogCoord = InitializeInputDataFog(float4(inputData.positionWS, 1.0), input.fogFactorAndVertexLight.x);
-    inputData.vertexLighting = input.fogFactorAndVertexLight.yzw;
-#else
-    inputData.fogCoord = InitializeInputDataFog(float4(inputData.positionWS, 1.0), input.fogFactor);
-    inputData.vertexLighting = half3(0, 0, 0);
-#endif
-
-    inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, input.lightParams.xyz, inputData.normalWS);
-
-    inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
-    inputData.shadowMask = half4(1, 1, 1, 1);
-}
-
-void GetSurfaceData(in half4 albedoColor,
-    in VertexOutput input, out SurfaceData surfaceData)
-{
-    surfaceData = (SurfaceData)0;
-    surfaceData.albedo = /*input.*/albedoColor.rgb;
-    surfaceData.alpha = /*input.*/albedoColor.a;
-
-    surfaceData.occlusion = 1.0;
-    //surfaceData.specular = _SpecularColor.rgb * pow(saturate(input.lightParams.w), _SpecularColor.a);
-}
-
 
 VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 {
@@ -188,10 +136,13 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 
     half4 albedoColor;
 
-    /*output.*/albedoColor.a = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) /
+    albedoColor.rgb = SAMPLE_TEXTURE2D_LOD(_ColorTexture, sampler_ColorTexture,
+        position2D, 0).rgb;
+
+    albedoColor.a = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) /
         (_MaxViewSquareDistance - _FadeStartSquareDistance);    
 
-    /*output.*/albedoColor.a *= input.positionOS.y;
+    albedoColor.a *= input.positionOS.y;
     
     float3 destPositionOS = float3(
         input.positionOS.x * sizeFactor.x,
@@ -201,8 +152,7 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     destPositionOS = float3(
         destPositionOS.x * yawCos - destPositionOS.z * yawSin,
         destPositionOS.y,
-        destPositionOS.x * yawSin + destPositionOS.z * yawCos
-        );
+        destPositionOS.x * yawSin + destPositionOS.z * yawCos);
     
     float3 positionWS = instancePositoin + destPositionOS;   
 
@@ -210,74 +160,28 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     positionWS.xz += windOffest;
 
     ApplyInteractorOffest(instancePositoin, step(0.5, input.positionOS.y), positionWS);
-
-    output.positionWS = positionWS;
     
-    CalculateNormal(input, yawSin, yawCos, windOffest, output.normalWS);
-    
-    //output.albedoColor.rgb = SAMPLE_TEXTURE2D_LOD(_ColorTexture, sampler_ColorTexture,
-    albedoColor.rgb = SAMPLE_TEXTURE2D_LOD(_ColorTexture, sampler_ColorTexture,
-        position2D, 0).rgb;
+    half3 normalWS;
+    CalculateNormal(input, yawSin, yawCos, windOffest, normalWS);
 
     output.positionCS = TransformWorldToHClip(positionWS);
     output.positionSS = ComputeScreenPos(output.positionCS);
-
-#if defined(_FOG_FRAGMENT)
-    half fogFactor = 0;
-#else
-    half fogFactor = ComputeFogFactor(output.positionCS.z);
-#endif
-
-#ifdef _ADDITIONAL_LIGHTS_VERTEX
-    half3 vertexLight = VertexLighting(output.positionWS, output.normalWS);
-    output.fogFactorAndVertexLight = half4(fogFactor, vertexLight);
-#else
-    output.fogFactor = fogFactor;
-#endif
-
-#ifdef REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR
-#ifdef _MAIN_LIGHT_SHADOWS_SCREEN
-    output.shadowCoord = ComputeScreenPos(output.positionCS);
-#else
-    output.shadowCoord = TransformWorldToShadowCoord(output.positionWS);
-#endif //_MAIN_LIGHT_SHADOWS_SCREEN
-#endif //REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR
     
-    output.lightParams.xyz = SampleSHVertex(output.normalWS);
-    output.lightParams.w = input.positionOS.y;
-
-
-    InputData inputData;
-    InitializeInputData(output, inputData);
-
-    SurfaceData surfaceData;
-    //GetSurfaceData(output, surfaceData);
-    GetSurfaceData(albedoColor, output, surfaceData);
-
-    output.applyLightResult = half4(UniversalFragmentBlinnPhong(inputData, surfaceData).rgb, albedoColor.a);
+    output.applyLightResult = CalculateBlinnPhong(positionWS, normalWS, albedoColor);
 
     return output;
 }
 
-
-
 half4 FragmentProgram(VertexOutput input) : SV_Target
 {
-    //InputData inputData;
-    //InitializeInputData(input, inputData);
-
-    //SurfaceData surfaceData;
-    //GetSurfaceData(input, surfaceData);
-
-    //half3 applyLightResult = UniversalFragmentBlinnPhong(inputData, surfaceData).rgb;
-    //half3 applyLightResult = input.albedoColor.rgb;
-    
     half3 sceneColor = SampleSceneColor(
         input.positionSS.xy / input.positionSS.w);    
     
-    //return half4(lerp(sceneColor, applyLightResult, input.albedoColor.a), 1.0);
     half4 applyLightResult = input.applyLightResult;
-    return half4(lerp(sceneColor, applyLightResult.rgb, applyLightResult.a), 1.0);
+
+    half applyWeight = 1.0 - pow(1.0 - applyLightResult.a, 5.0);
+
+    return half4(lerp(sceneColor, applyLightResult.rgb, applyWeight), 1.0);
 }
 
 #endif //GRASS_IMPL_INCLUDED
