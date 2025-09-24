@@ -6,7 +6,8 @@
 
 #pragma kernel CSMain
 
-#pragma multi_compile_local _ PROCESS_WEIGHT_MAP_FILTER
+//#pragma multi_compile_local _ PROCESS_WEIGHT_MAP_FILTER
+#define PROCESS_WEIGHT_MAP_FILTER
 
 #include "GrassInstance.hlsl"
 #include "SimplexNoise.hlsl"
@@ -20,7 +21,10 @@ static const float sc_towPI = 2.0 * sc_PI;
 static const float sc_skipWeightRatio = 0.3;
 
 StructuredBuffer<uint> _VisibleCellIndexBuffer;
-AppendStructuredBuffer<GrassInstanceData> _VisibleInstanceBuffer;
+
+RWTexture2D<float4> _FilterResultRT;
+RWStructuredBuffer<uint> _InstanceCountBuffer;
+float2 _FilterResultRTSize;
 
 SamplerState sampler_WeightMap;
 Texture2D<float4> _WeightMap;
@@ -43,8 +47,6 @@ float3 _CameraPosition;
 half3 _WidthSizeInfo;
 half3 _HeightSizeInfo;
 
-float4 _WorldMinMax;
-
 half _WindWeight;
 //x:intensity
 //y:frequency
@@ -60,13 +62,6 @@ half2 _WindCParams;
 half4 _WindCTilingWrap;
 
 float _CurrentTime;
-
-half2 GetWorldUV(in float2 worldPosition2D)
-{
-	float2 clmapPosition2D = clamp(worldPosition2D, _WorldMinMax.xy, _WorldMinMax.zw);
-	return half2((clmapPosition2D.x - _WorldMinMax.x) / (_WorldMinMax.z - _WorldMinMax.x),
-		(clmapPosition2D.y - _WorldMinMax.y) / (_WorldMinMax.w - _WorldMinMax.y));
-}
 
 float2 GetRandomOffest2D(in float2 point2D)
 {
@@ -149,6 +144,13 @@ void GetInstanceTransform(in uint instanceOffest, out float2 position2D, out hal
 	yawRadians = instanceRandomOffest.x * sc_towPI;
 }
 
+half2 GetWorldUV(in float2 worldPosition2D)
+{
+	float2 clmapPosition2D = clamp(worldPosition2D, _WorldMinMax.xy, _WorldMinMax.zw);
+	return half2((clmapPosition2D.x - _WorldMinMax.x) / (_WorldMinMax.z - _WorldMinMax.x),
+		(clmapPosition2D.y - _WorldMinMax.y) / (_WorldMinMax.w - _WorldMinMax.y));
+}
+
 [numthreads(64, 1, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {	
@@ -190,14 +192,16 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 		(absPosCS.x > absPosCS.w * _MaxInstanceSize))
 		return;
 
-	GrassInstanceData grassInstanceData = (GrassInstanceData)0;
-	grassInstanceData.position2D = position2D;
-	grassInstanceData.wind = CalculateWind(grassInstanceData.position2D);
+	uint index = _InstanceCountBuffer.IncrementCounter();
+	uint offestIndex = index * 2;
 
-	grassInstanceData.yawSin = sin(yawRadians);
-	grassInstanceData.yawCos = cos(yawRadians);
+	half2 worldUV = GetWorldUV(position2D);
 
-	grassInstanceData.sizeFactor = GetDestSize(grassInstanceData.position2D, grassWeight);
-	
-	_VisibleInstanceBuffer.Append(grassInstanceData);	
+	_FilterResultRT[int2(offestIndex % _FilterResultRTSize.x, offestIndex / _FilterResultRTSize.x)] =
+		float4(worldUV, GetDestSize(position2D, grassWeight));
+
+	++offestIndex;
+
+	_FilterResultRT[int2(offestIndex % _FilterResultRTSize.x, offestIndex / _FilterResultRTSize.x)] =
+		float4(sin(yawRadians), cos(yawRadians), CalculateWind(position2D), 0.0);
 }

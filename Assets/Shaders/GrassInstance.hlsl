@@ -7,16 +7,8 @@
 #ifndef GRASS_INSTANCE_INCLUDED
 #define GRASS_INSTANCE_INCLUDED
 
-struct GrassInstanceData
-{
-    float2 position2D;
-    half2 sizeFactor;    
-    half yawSin;
-    half yawCos;
-    half wind;
-};
-
 float _MaxViewSquareDistance;
 half _MaxInstanceSize;
+float4 _WorldMinMax;
 
 #endif //GRASS_INSTANCE_INCLUDED

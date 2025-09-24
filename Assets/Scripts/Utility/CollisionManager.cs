@@ -62,7 +62,6 @@ namespace SB
                 touchInformation.m_type = TOUCH_EVENT_TYPE.MOVE;
         }
 
-
         private void SetupTouchInformation()
         {
             m_touchInformation.Clear();
