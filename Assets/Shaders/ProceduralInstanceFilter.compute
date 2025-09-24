@@ -6,7 +6,7 @@
 
 #pragma kernel CSMain
 
-//#pragma multi_compile_local _ PROCESS_WEIGHT_MAP_FILTER
+#pragma multi_compile_local _ PROCESS_WEIGHT_MAP_FILTER
 #define PROCESS_WEIGHT_MAP_FILTER
 
 #include "GrassInstance.hlsl"

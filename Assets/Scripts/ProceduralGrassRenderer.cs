@@ -230,7 +230,7 @@ namespace SB.ProceduralGrass
             Graphics.DrawMeshInstancedIndirect(GetGrassMesh(), 0, m_grassMaterial, m_renderBound, m_indirectArgumentsBuffer,
                 0, null, ShadowCastingMode.Off, true, 0, camera);
         }
-        
+
         private void RefreshParams()
         {
             if ((!m_proceduralGrassData) || (!m_targetProceduralInstanceFilterCS) || (!m_grassMaterial))
@@ -380,7 +380,24 @@ namespace SB.ProceduralGrass
             }
             else
                 m_targetProceduralInstanceFilterCS.DisableKeyword(mc_processWeightMapFilterKeyword);
-        }        
+        }
+
+        //private Mesh GetGrassMesh()
+        //{
+        //    if (m_cachedGrassMesh)
+        //        return m_cachedGrassMesh;
+
+        //    m_cachedGrassMesh = new Mesh();
+        //    Vector3[] verts = new Vector3[3];
+        //    verts[0] = new Vector3(-mc_grassMeshWidth, 0.0f, 0.0f);
+        //    verts[1] = new Vector3(mc_grassMeshWidth, 0.0f, 0.0f);
+        //    verts[2] = new Vector3(0.0f, 1.0f, 0.0f);
+
+        //    m_cachedGrassMesh.SetVertices(verts);
+        //    m_cachedGrassMesh.SetTriangles(new int[3] { 2, 1, 0, }, 0);
+
+        //    return m_cachedGrassMesh;
+        //}
 
         private Mesh GetGrassMesh()
         {
@@ -471,7 +488,10 @@ namespace SB.ProceduralGrass
 
         private void AppendExtendStringCB(ref string text)
         {
-            text = string.Format("\n=============\nLoadTime:{0}S", m_executeTime / 1000.0f);
+            m_indirectArgumentsBuffer.GetData(ms_tempIndirectArguments);
+
+            text = string.Format("\n=============\nLoadTime:{0}S\nInstanceCount:{1}", m_executeTime / 1000.0f,
+                ms_tempIndirectArguments[1]);
         }
 
 #if UNITY_EDITOR
