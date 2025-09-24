@@ -17,7 +17,6 @@ struct GrassInstanceData
 };
 
 float _MaxViewSquareDistance;
-
-
+half _MaxInstanceSize;
 
 #endif //GRASS_INSTANCE_INCLUDED

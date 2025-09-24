@@ -52,6 +52,10 @@ half2 _WindDirection;
 half _FadeGroundPow;
 half4 _SpecularColor;
 half _WindNormalWeight;
+//xyz:position
+//w:radius
+float4 _InteractorCollisionSphere;
+half _InteractorAffectWeight;
 CBUFFER_END
 
 void CalculateNormal(in VertexInput input, in float sinValue, in float cosValue, in half2 windOffest,
@@ -65,6 +69,32 @@ void CalculateNormal(in VertexInput input, in float sinValue, in float cosValue,
     half2 scaleWindOffest = windOffest * _WindNormalWeight * input.positionOS.y;
     normalWS += half3(scaleWindOffest.x, 0.0, scaleWindOffest.y);
     normalWS = normalize(normalWS);
+}
+
+void ApplyInteractorOffest(in float3 instancePositoin, in half applyWeight, inout float3 positionWS)
+{
+    //float3 delta = _InteractorCollisionSphere.xyz - positionWS;
+    float3 delta = instancePositoin - _InteractorCollisionSphere.xyz;
+    float squareDistance = dot(delta, delta);
+    float maxCheckRadius = _MaxInstanceSize + _InteractorCollisionSphere.w;
+    float maxCheckSquareRadius = maxCheckRadius * maxCheckRadius;
+    if (squareDistance > maxCheckSquareRadius)
+        return;
+
+    // linear falloff (1 at center, 0 at radius) — can be changed to smoothstep/pow/exp
+    float falloff = saturate(1.0 - (squareDistance / maxCheckRadius));
+
+    // Direction: from interactor to instance (avoid divide-by-zero)
+    float3 dir = (squareDistance > 1e-5) ? normalize(delta) : float3(0.0, 0.0, 0.0);
+
+    // Use interactor.w as base strength (multiply global scale here if needed)
+    float magnitude = falloff * _InteractorCollisionSphere.w * _InteractorAffectWeight;
+
+    // Storage format: float4(dx, dy, dz, strength)
+    float3 displacement = dir * magnitude;
+
+    //positionWS.xz += applyWeight * displacement.xz;
+    positionWS.xz += applyWeight * displacement.xz;
 }
 
 VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
@@ -101,11 +131,16 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
         destPositionOS.y,
         destPositionOS.x * sinValue + destPositionOS.z * cosValue
         );
+
+    //float4 _InteractorCollisionSphere;    
     
-    float3 positionWS = instancePositoin + destPositionOS;
+    float3 positionWS = instancePositoin + destPositionOS;   
 
     float2 windOffest = _WindDirection * grassInstanceData.wind * input.positionOS.y;
     positionWS.xz += windOffest;
+
+    ApplyInteractorOffest(instancePositoin, step(0.5, input.positionOS.y), positionWS);
+
     output.positionWS = positionWS;
     
     CalculateNormal(input, sinValue, cosValue, windOffest, output.normalWS);

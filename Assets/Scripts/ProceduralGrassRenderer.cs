@@ -25,6 +25,13 @@ namespace SB.ProceduralGrass
     [ExecuteAlways]
     public class ProceduralGrassRenderer : MonoBehaviour
     {
+        public void UpdateMainInteractorTransform(in Vector3 position, float radius)
+        {
+            if (!m_grassMaterial)
+                return;
+            m_grassMaterial.SetVector(GrassShaderID.msr_interactorCollisionSphere,
+                new float4(position, radius));
+        }
         private void OnEnable()
         {
             ReInitialize();
@@ -242,6 +249,7 @@ namespace SB.ProceduralGrass
                 specularColor.r, specularColor.g, specularColor.b, m_proceduralGrassData.m_specularWeightPow));
 
             m_grassMaterial.SetFloat(GrassShaderID.msr_windNormalWeight, windParameters.m_windNormalWeight);
+            m_grassMaterial.SetFloat(GrassShaderID.msr_interactorAffectWeight, m_proceduralGrassData.m_interactorAffectWeight);
 
             m_grassMaterial.SetTexture(GrassShaderID.msr_ColorTexture, m_proceduralGrassData.m_grassColorTexture);
 
@@ -318,8 +326,7 @@ namespace SB.ProceduralGrass
                 widthSizeInfo.m_size + widthSizeInfo.m_maxSizeOffest,
                 heightSizeInfo.m_size + heightSizeInfo.m_maxSizeOffest);
 
-            m_targetProceduralInstanceFilterCS.SetFloat(ProceduralInstanceFilterID.msr_maxInstanceSize,
-                maxSize);            
+            Shader.SetGlobalFloat(msr_maxInstanceSizeID, maxSize);
 
             m_targetProceduralInstanceFilterCS.SetFloat(ProceduralInstanceFilterID.msr_windWeight, windParameters.m_windIntensityRatio);
 
@@ -500,6 +507,7 @@ namespace SB.ProceduralGrass
 
         private static readonly int msr_visibleInstanceBufferID = Shader.PropertyToID("_VisibleInstanceBuffer");
         private static readonly int msr_maxViewSquareDistanceID = Shader.PropertyToID("_MaxViewSquareDistance");
+        private static readonly int msr_maxInstanceSizeID = Shader.PropertyToID("_MaxInstanceSize");
         private static class ProceduralInstanceFilterID
         {
             public static readonly int msr_offestCount = Shader.PropertyToID("_OffsetCount");
@@ -511,8 +519,7 @@ namespace SB.ProceduralGrass
             public static readonly int msr_cellInstanceCount = Shader.PropertyToID("_CellInstanceCount");
             public static readonly int msr_viewProjectionMatrix = Shader.PropertyToID("_ViewProjectionMatrix");            
             public static readonly int msr_jitterStrength = Shader.PropertyToID("_JitterStrength");
-            public static readonly int msr_InstanceSpacing = Shader.PropertyToID("_InstanceSpacing");
-            public static readonly int msr_maxInstanceSize = Shader.PropertyToID("_MaxInstanceSize");
+            public static readonly int msr_InstanceSpacing = Shader.PropertyToID("_InstanceSpacing");            
             public static readonly int msr_cameraPosition = Shader.PropertyToID("_CameraPosition");
 
             public static readonly int msr_widthSizeInfo = Shader.PropertyToID("_WidthSizeInfo");
@@ -537,12 +544,14 @@ namespace SB.ProceduralGrass
             public static readonly int msr_ColorTexture = Shader.PropertyToID("_ColorTexture");
             public static readonly int msr_windDirection = Shader.PropertyToID("_WindDirection");
             public static readonly int msr_specularColor = Shader.PropertyToID("_SpecularColor");
-            public static readonly int msr_windNormalWeight = Shader.PropertyToID("_WindNormalWeight");            
+            public static readonly int msr_windNormalWeight = Shader.PropertyToID("_WindNormalWeight");
+            public static readonly int msr_interactorCollisionSphere = Shader.PropertyToID("_InteractorCollisionSphere");
+            public static readonly int msr_interactorAffectWeight = Shader.PropertyToID("_InteractorAffectWeight");
         }
 
         private const float mc_grassMeshWidth = 0.25f;
 
-        private const uint mc_maxVisibleInstanceCount = 1000000;
+        private const uint mc_maxVisibleInstanceCount = 1500000;
         private const string mc_processWeightMapFilterKeyword = "PROCESS_WEIGHT_MAP_FILTER";
 
         private struct GrassInstanceData
@@ -555,3 +564,5 @@ namespace SB.ProceduralGrass
         }
     }
 }
+
+

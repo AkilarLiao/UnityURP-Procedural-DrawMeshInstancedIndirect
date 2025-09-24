@@ -19,7 +19,6 @@ static const float sc_PI = 3.1415927;
 static const float sc_towPI = 2.0 * sc_PI;
 static const float sc_skipWeightRatio = 0.3;
 
-
 StructuredBuffer<uint> _VisibleCellIndexBuffer;
 AppendStructuredBuffer<GrassInstanceData> _VisibleInstanceBuffer;
 
@@ -35,7 +34,6 @@ uint _MaxProcessCount;
 uint _OffsetCount;
 half _JitterStrength;
 half2 _InstanceSpacing;
-half _MaxInstanceSize;
 float4x4 _ViewProjectionMatrix;
 float3 _CameraPosition;
 
@@ -175,7 +173,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	half grassWeight = 1.0;
 #ifdef PROCESS_WEIGHT_MAP_FILTER
-	grassWeight = _WeightMap.SampleLevel(sampler_WeightMap, GetWorldUV(position2D), 0).r;
+	grassWeight = _WeightMap.SampleLevel(sampler_WeightMap, GetWorldUV(position2D), 0).a;
 	if (grassWeight <= sc_skipWeightRatio)
 		return;
 #endif
