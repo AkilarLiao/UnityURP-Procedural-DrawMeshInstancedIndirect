@@ -22,9 +22,9 @@ namespace SB
             {
                 if (applicationIsQuitting)
                 {
-                    Debug.LogWarning("[Singleton] Instance '" + typeof(T) +
-                        "' already destroyed on application quit." +
-                        " Won't create again - returning null.");
+                    //Debug.LogWarning("[Singleton] Instance '" + typeof(T) +
+                    //    "' already destroyed on application quit." +
+                    //    " Won't create again - returning null.");
                     return null;
                 }
 
@@ -36,10 +36,10 @@ namespace SB
 
                         if (FindObjectsOfType(typeof(T)).Length > 1)
                         {
-                            Debug.LogError("[Singleton] Something went " +
-                                "really wrong  - there should never be more" +
-                                " than 1 singleton! Reopening the scene" +
-                                " might fix it.");
+                            //Debug.LogError("[Singleton] Something went " +
+                            //    "really wrong  - there should never be more" +
+                            //    " than 1 singleton! Reopening the scene" +
+                            //    " might fix it.");
                             return ms_instance;
                         }
 
@@ -52,16 +52,16 @@ namespace SB
 
                             DontDestroyOnLoad(singleton);
 
-                            Debug.Log("[Singleton] An instance of " +
-                                typeof(T) + " is needed in the scene, so '" +
-                                singleton +
-                                "' was created with DontDestroyOnLoad.");
+                            //Debug.Log("[Singleton] An instance of " +
+                            //    typeof(T) + " is needed in the scene, so '" +
+                            //    singleton +
+                            //    "' was created with DontDestroyOnLoad.");
                         }
                         else
                         {
-                            Debug.Log("[Singleton] Using instance " +
-                                "already created: " +
-                                ms_instance.gameObject.name);
+                            //Debug.Log("[Singleton] Using instance " +
+                            //    "already created: " +
+                            //    ms_instance.gameObject.name);
                         }
                     }
 

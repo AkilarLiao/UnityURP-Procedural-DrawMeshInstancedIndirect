@@ -11,7 +11,7 @@
 //#############2.要怎麼算specular, out line rim，還是中心點…
 //#############3.整合WeightMap...
 //#############4.DisplayFPS，CameraControler及加載時間代碼整合
-//5.VertexShader處理Collision...
+//#############5.VertexShader處理Collision...
 //6.性能測試s10
 //7.加載時間s10
 
@@ -553,16 +553,14 @@ namespace SB.ProceduralGrass
 
         private const uint mc_maxVisibleInstanceCount = 1500000;
         private const string mc_processWeightMapFilterKeyword = "PROCESS_WEIGHT_MAP_FILTER";
-
+        
         private struct GrassInstanceData
         {
             public Vector2 position2D;
-            public Vector2 sizeFactor;            
+            public Vector2 sizeFactor;
             public float yawSin;
             public float yawCos;
             public float wind;
-        }
+        }        
     }
 }
-
-
