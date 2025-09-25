@@ -9,7 +9,7 @@
 #pragma multi_compile_local _ PROCESS_WEIGHT_MAP_FILTER
 #define PROCESS_WEIGHT_MAP_FILTER
 
-#include "GrassInstance.hlsl"
+#include "GrassParams.hlsl"
 #include "SimplexNoise.hlsl"
 
 static const float3 s_cRandomVector = float3(0.1031, 0.1030, 0.0973);

@@ -86,6 +86,14 @@ namespace SB.ProceduralGrass
         [Range(0.01f, 1.0f)]
         public float m_interactorAffectWeight = 0.5f;
 
+        [Tooltip("The interactor affect weight.")]
+        [Range(0.01f, 50.0f)]
+        public float m_colorTextureTileScale = 10.0f;
+
+        [Tooltip("The fade pow.")]
+        [Range(1.0f, 8.0f)]
+        public float m_fadePow = 5.0f;
+
         [Tooltip("grass color texture")]
         public Texture2D m_grassColorTexture = null;
 

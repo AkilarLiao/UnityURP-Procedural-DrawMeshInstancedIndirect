@@ -14,6 +14,7 @@
 //#############5.VertexShader處理Collision...
 //6.性能測試s10
 //7.加載時間s10
+//8.開反鋸齒，RenderScale小於1時，會有白點閃，感覺像是afterOpaqueColor出現問題。
 
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
@@ -261,8 +262,11 @@ namespace SB.ProceduralGrass
             m_grassMaterial.SetVector(GrassShaderID.msr_specularColor, new Vector4(
                 specularColor.r, specularColor.g, specularColor.b, m_proceduralGrassData.m_specularWeightPow));
 
-            m_grassMaterial.SetFloat(GrassShaderID.msr_windNormalWeight, windParameters.m_windNormalWeight);
-            m_grassMaterial.SetFloat(GrassShaderID.msr_interactorAffectWeight, m_proceduralGrassData.m_interactorAffectWeight);
+            //m_grassMaterial.SetFloat(GrassShaderID.msr_windNormalWeight, windParameters.m_windNormalWeight);
+            //m_grassMaterial.SetFloat(GrassShaderID.msr_interactorAffectWeight, m_proceduralGrassData.m_interactorAffectWeight);
+            m_grassMaterial.SetVector(GrassShaderID.msr_shadingParams, new Vector4(
+                windParameters.m_windNormalWeight, m_proceduralGrassData.m_colorTextureTileScale,
+                m_proceduralGrassData.m_fadePow, m_proceduralGrassData.m_interactorAffectWeight));
 
             m_grassMaterial.SetTexture(GrassShaderID.msr_ColorTexture, m_proceduralGrassData.m_grassColorTexture);            
 
@@ -583,10 +587,17 @@ namespace SB.ProceduralGrass
             public static readonly int msr_fadeStartSquareDistance = Shader.PropertyToID("_FadeStartSquareDistance");            
             public static readonly int msr_ColorTexture = Shader.PropertyToID("_ColorTexture");
             public static readonly int msr_windDirection = Shader.PropertyToID("_WindDirection");
-            public static readonly int msr_specularColor = Shader.PropertyToID("_SpecularColor");
-            public static readonly int msr_windNormalWeight = Shader.PropertyToID("_WindNormalWeight");
+            public static readonly int msr_specularColor = Shader.PropertyToID("_SpecularColor");            
             public static readonly int msr_interactorCollisionSphere = Shader.PropertyToID("_InteractorCollisionSphere");
-            public static readonly int msr_interactorAffectWeight = Shader.PropertyToID("_InteractorAffectWeight");
+
+            //public static readonly int msr_windNormalWeight = Shader.PropertyToID("_WindNormalWeight");
+            //public static readonly int msr_interactorAffectWeight = Shader.PropertyToID("_InteractorAffectWeight");
+
+            public static readonly int msr_shadingParams = Shader.PropertyToID("_ShadingParams");
+            //half _WindNormalWeight;
+            //half _ColorTextureTileScale;
+            //half _FadePow;
+            //half _InteractorAffectWeight;
         }
 
         private const float mc_grassMeshWidth = 0.25f;
