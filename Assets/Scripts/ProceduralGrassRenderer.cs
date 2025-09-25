@@ -7,9 +7,7 @@
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering.Universal;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace SB.ProceduralGrass
 {
@@ -40,26 +38,6 @@ namespace SB.ProceduralGrass
             {
                 m_targetDisplayFPS.AppendExtendString -= AppendExtendStringCB;
                 m_targetDisplayFPS.AppendExtendString += AppendExtendStringCB;
-            }
-            
-            ScriptableRendererData[] rendererDataList =
-                (ScriptableRendererData[])typeof(UniversalRenderPipelineAsset).
-                GetField("m_RendererDataList",
-               System.Reflection.BindingFlags.NonPublic |
-               System.Reflection.BindingFlags.Instance).
-               GetValue(UniversalRenderPipeline.asset);
-
-            if ((rendererDataList == null) || (rendererDataList.Length == 0))
-            {
-                Debug.Log("rendererDataList[] is null or length is 0");
-                return;
-            }
-
-            var theUniversalRendererData = (UniversalRendererData)(rendererDataList[0]);
-            if (theUniversalRendererData == null)
-            {
-                Debug.Log("theUniversalRendererData is null");
-                return;
             }
         }
 
@@ -266,14 +244,7 @@ namespace SB.ProceduralGrass
             var rotation = Quaternion.Euler(0.0f, windParameters.m_windYawAngle, 0.0f);
             var direction = rotation * Vector3.forward;
             m_grassMaterial.SetVector(GrassShaderID.msr_windDirection, new Vector2(direction.x, direction.z));
-
-            var specularColor = m_proceduralGrassData.m_specularColor;
-
-            m_grassMaterial.SetVector(GrassShaderID.msr_specularColor, new Vector4(
-                specularColor.r, specularColor.g, specularColor.b, m_proceduralGrassData.m_specularWeightPow));
-
-            //m_grassMaterial.SetFloat(GrassShaderID.msr_windNormalWeight, windParameters.m_windNormalWeight);
-            //m_grassMaterial.SetFloat(GrassShaderID.msr_interactorAffectWeight, m_proceduralGrassData.m_interactorAffectWeight);
+            
             m_grassMaterial.SetVector(GrassShaderID.msr_shadingParams, new Vector4(
                 windParameters.m_windNormalWeight, m_proceduralGrassData.m_colorTextureTileScale,
                 m_proceduralGrassData.m_fadePow, m_proceduralGrassData.m_interactorAffectWeight));
@@ -395,24 +366,7 @@ namespace SB.ProceduralGrass
             else
                 m_targetProceduralInstanceFilterCS.DisableKeyword(mc_processWeightMapFilterKeyword);
         }
-
-        //private Mesh GetGrassMesh()
-        //{
-        //    if (m_cachedGrassMesh)
-        //        return m_cachedGrassMesh;
-
-        //    m_cachedGrassMesh = new Mesh();
-        //    Vector3[] verts = new Vector3[3];
-        //    verts[0] = new Vector3(-mc_grassMeshWidth, 0.0f, 0.0f);
-        //    verts[1] = new Vector3(mc_grassMeshWidth, 0.0f, 0.0f);
-        //    verts[2] = new Vector3(0.0f, 1.0f, 0.0f);
-
-        //    m_cachedGrassMesh.SetVertices(verts);
-        //    m_cachedGrassMesh.SetTriangles(new int[3] { 2, 1, 0, }, 0);
-
-        //    return m_cachedGrassMesh;
-        //}
-
+        
         private Mesh GetGrassMesh()
         {
             if (m_cachedGrassMesh)
@@ -422,9 +376,9 @@ namespace SB.ProceduralGrass
 
             // Vertices: three at the base + one at the top
             Vector3[] verts = new Vector3[4];
-            verts[0] = new Vector3(-mc_grassMeshWidth, 0, -mc_grassMeshWidth);    // Base vertex 1
-            verts[1] = new Vector3(mc_grassMeshWidth, 0, -mc_grassMeshWidth);     // Base vertex 2
-            verts[2] = new Vector3(0, 0, mc_grassMeshWidth);                     // Base vertex 3
+            verts[0] = new Vector3(-mc_grassMeshWidth, 0, -mc_grassMeshWidth);  // Base vertex 1
+            verts[1] = new Vector3(mc_grassMeshWidth, 0, -mc_grassMeshWidth);   // Base vertex 2
+            verts[2] = new Vector3(0, 0, mc_grassMeshWidth);                    // Base vertex 3
             verts[3] = new Vector3(0, 1, 0);                                    // Top vertex
 
             // Triangles: one base + three sides
@@ -436,18 +390,12 @@ namespace SB.ProceduralGrass
                 2, 3, 0  // Side 3
             };
 
-            // Normals
             Vector3[] normals = new Vector3[4];
 
-            // 底部三個點法線都指向下方
-            //normals[0] = Vector3.down;
-            //normals[1] = Vector3.down;
-            //normals[2] = Vector3.down;
             normals[0] = Vector3.right;
             normals[1] = Vector3.right;
             normals[2] = Vector3.right;
 
-            // 頂點的法線：取三個側面法線平均
             Vector3 n0 = Vector3.Cross(verts[3] - verts[0], verts[1] - verts[0]).normalized;
             Vector3 n1 = Vector3.Cross(verts[3] - verts[1], verts[2] - verts[1]).normalized;
             Vector3 n2 = Vector3.Cross(verts[3] - verts[2], verts[0] - verts[2]).normalized;
@@ -510,9 +458,7 @@ namespace SB.ProceduralGrass
 
 #if UNITY_EDITOR
         private void EditUpdate()
-        {
-            //if (!Application.isPlaying)
-            //UpdateCS();
+        {   
             UnityEditor.EditorApplication.QueuePlayerLoopUpdate();
         }
 
@@ -541,7 +487,9 @@ namespace SB.ProceduralGrass
 
         private ComputeBuffer m_instanceCountBuffer = null;
         private RenderTexture m_filterResultRT = null;
-        private Vector2Int m_filterResultSize = new Vector2Int(2048, 2048); //2 pixel記錄一個instance，也就是2,097,152個
+        
+        // 2 pixels record one instance, which means 2,097,152 instances.
+        private Vector2Int m_filterResultSize = new Vector2Int(2048, 2048);
 
         private VisableCellsCuller m_visableCellsCuller = new VisableCellsCuller();
 
@@ -596,22 +544,12 @@ namespace SB.ProceduralGrass
         {
             public static readonly int msr_fadeStartSquareDistance = Shader.PropertyToID("_FadeStartSquareDistance");            
             public static readonly int msr_ColorTexture = Shader.PropertyToID("_ColorTexture");
-            public static readonly int msr_windDirection = Shader.PropertyToID("_WindDirection");
-            public static readonly int msr_specularColor = Shader.PropertyToID("_SpecularColor");            
+            public static readonly int msr_windDirection = Shader.PropertyToID("_WindDirection");            
             public static readonly int msr_interactorCollisionSphere = Shader.PropertyToID("_InteractorCollisionSphere");
-
-            //public static readonly int msr_windNormalWeight = Shader.PropertyToID("_WindNormalWeight");
-            //public static readonly int msr_interactorAffectWeight = Shader.PropertyToID("_InteractorAffectWeight");
-
             public static readonly int msr_shadingParams = Shader.PropertyToID("_ShadingParams");
-            //half _WindNormalWeight;
-            //half _ColorTextureTileScale;
-            //half _FadePow;
-            //half _InteractorAffectWeight;
         }
 
         private const float mc_grassMeshWidth = 0.25f;
-
         private const string mc_processWeightMapFilterKeyword = "PROCESS_WEIGHT_MAP_FILTER";
     }
 }

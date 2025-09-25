@@ -29,7 +29,6 @@ TEXTURE2D(_ColorTexture); SAMPLER(sampler_ColorTexture);
 
 float _FadeStartSquareDistance;
 half2 _WindDirection;
-half4 _SpecularColor;
 //x:windNormalWeight, y:colorTextureTileScale, z:fadePow, w: interactorAffectWeight
 half4 _ShadingParams;
 float4 _InteractorCollisionSphere;

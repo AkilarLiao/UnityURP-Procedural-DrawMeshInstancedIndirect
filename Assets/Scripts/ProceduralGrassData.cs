@@ -73,15 +73,8 @@ namespace SB.ProceduralGrass
         public float m_fadeEndDistance = 300.0f;
         
         [Tooltip("The wind parameters.")]
-        public WindParameters m_windParameters = new WindParameters();        
-
-        [Tooltip("The specular color.")]
-        public Color m_specularColor = new Color(1.0f, 1.0f, 0.5f, 1.0f);
-
-        [Tooltip("The specular weight pow.")]
-        [Range(1.0f, 32.0f)]
-        public float m_specularWeightPow = 4.0f;
-
+        public WindParameters m_windParameters = new WindParameters();
+        
         [Tooltip("The interactor affect weight.")]
         [Range(0.01f, 1.0f)]
         public float m_interactorAffectWeight = 0.5f;
