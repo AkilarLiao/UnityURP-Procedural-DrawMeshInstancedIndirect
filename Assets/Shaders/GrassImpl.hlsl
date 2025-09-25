@@ -67,7 +67,10 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 
     output.positionSS = ComputeScreenPos(output.positionCS);
     half4 albedoColor = GetAlbedoColor(worldUV, instancePositoin, affectWeight);
+    //non billboard : 223 fps
+    //billboard : 252 fps
     output.resultColor = CalculateBlinnPhong(positionWS, normalWS, output.positionCS, albedoColor);
+    //output.resultColor = albedoColor;
     return output;
 }
 

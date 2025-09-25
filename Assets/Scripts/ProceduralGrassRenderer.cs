@@ -366,7 +366,24 @@ namespace SB.ProceduralGrass
             else
                 m_targetProceduralInstanceFilterCS.DisableKeyword(mc_processWeightMapFilterKeyword);
         }
-        
+
+        //private Mesh GetGrassMesh()
+        //{
+        //    if (m_cachedGrassMesh)
+        //        return m_cachedGrassMesh;
+
+        //    m_cachedGrassMesh = new Mesh();
+        //    Vector3[] verts = new Vector3[3];
+        //    verts[0] = new Vector3(-mc_grassMeshWidth, 0.0f, 0.0f);
+        //    verts[1] = new Vector3(mc_grassMeshWidth, 0.0f, 0.0f);
+        //    verts[2] = new Vector3(0.0f, 1.0f, 0.0f);
+
+        //    m_cachedGrassMesh.SetVertices(verts);
+        //    m_cachedGrassMesh.SetTriangles(new int[3] { 2, 1, 0, }, 0);
+
+        //    return m_cachedGrassMesh;
+        //}
+
         private Mesh GetGrassMesh()
         {
             if (m_cachedGrassMesh)
