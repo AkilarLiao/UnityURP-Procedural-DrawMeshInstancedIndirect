@@ -4,22 +4,12 @@
 /// Desc:
 /// </summary>
 
-//#############初步測試，網格數還是有差的，改成billboard性能會比較好…但是有顯示上的問題，先放棄…
-//#############1.單三角：116 fps（家裡電腦）
-//#############2.coneMesh: 86 fps（家裡電腦）
-//#############1.考慮要不要改成billboard...
-//#############2.要怎麼算specular, out line rim，還是中心點…
-//#############3.整合WeightMap...
-//#############4.DisplayFPS，CameraControler及加載時間代碼整合
-//#############5.VertexShader處理Collision...
-//6.性能測試s10
-//7.加載時間s10
-//8.開反鋸齒，RenderScale小於1時，會有白點閃，感覺像是afterOpaqueColor出現問題。
-
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering.Universal;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace SB.ProceduralGrass
 {
@@ -50,6 +40,26 @@ namespace SB.ProceduralGrass
             {
                 m_targetDisplayFPS.AppendExtendString -= AppendExtendStringCB;
                 m_targetDisplayFPS.AppendExtendString += AppendExtendStringCB;
+            }
+            
+            ScriptableRendererData[] rendererDataList =
+                (ScriptableRendererData[])typeof(UniversalRenderPipelineAsset).
+                GetField("m_RendererDataList",
+               System.Reflection.BindingFlags.NonPublic |
+               System.Reflection.BindingFlags.Instance).
+               GetValue(UniversalRenderPipeline.asset);
+
+            if ((rendererDataList == null) || (rendererDataList.Length == 0))
+            {
+                Debug.Log("rendererDataList[] is null or length is 0");
+                return;
+            }
+
+            var theUniversalRendererData = (UniversalRendererData)(rendererDataList[0]);
+            if (theUniversalRendererData == null)
+            {
+                Debug.Log("theUniversalRendererData is null");
+                return;
             }
         }
 
@@ -174,9 +184,9 @@ namespace SB.ProceduralGrass
         {   
             m_targetProceduralInstanceFilterCS.SetFloat(ProceduralInstanceFilterID.msr_currentTime,
                 Time.time);
-//#if UNITY_EDITOR
+#if UNITY_EDITOR
             RefreshParams();
-//#endif //UNITY_EDITOR
+#endif //UNITY_EDITOR
         }
 
         private void OnBeginCameraRendering(ScriptableRenderContext context, Camera camera)
@@ -540,7 +550,7 @@ namespace SB.ProceduralGrass
 
         private ExecuteTimeProcessor m_executeTimeProcessor = new ExecuteTimeProcessor();
         private long m_executeTime = 0;
-
+        
         private static uint[] ms_tempIndirectArguments = new uint[5] { 0, 0, 0, 0, 0 };
 
         private static readonly Vector2 msr_worldMinMaxHeight = new Vector2(0.0f, 10.0f);
