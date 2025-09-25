@@ -72,30 +72,30 @@ namespace SB
 
                 if (!m_onlyShowFPS)
                 {
-                    ms_tempFPSText = string.Format("{0}\ngraphicsDeviceType:{1}",
-                        ms_tempFPSText, SystemInfo.graphicsDeviceType);
+                    //ms_tempFPSText = string.Format("{0}\ngraphicsDeviceType:{1}",
+                        //ms_tempFPSText, SystemInfo.graphicsDeviceType);
                     ms_tempFPSText = string.Format("{0}\ngraphicsDeviceName:{1}",
                         ms_tempFPSText, SystemInfo.graphicsDeviceName);
-                    ms_tempFPSText = string.Format("{0}\ngraphicsMultiThreaded:{1}",
-                        ms_tempFPSText, SystemInfo.graphicsMultiThreaded);
-                    ms_tempFPSText = string.Format("{0}\nsupportsInstancing:{1}",
-                        ms_tempFPSText, SystemInfo.supportsInstancing);
-                    ms_tempFPSText = string.Format("{0}\nsupportsComputeShaders:{1}",
-                        ms_tempFPSText, SystemInfo.supportsComputeShaders);
-                    ms_tempFPSText = string.Format("{0}\nmaxComputeBufferInputsCompute:{1}",
-                        ms_tempFPSText, SystemInfo.maxComputeBufferInputsCompute);
-                    ms_tempFPSText = string.Format("{0}\nmaxComputeBufferInputsVertex:{1}",
-                        ms_tempFPSText, SystemInfo.maxComputeBufferInputsVertex);
-                    ms_tempFPSText = string.Format("{0}\nmaxComputeBufferInputsFragment:{1}",
-                        ms_tempFPSText, SystemInfo.maxComputeBufferInputsFragment);
-                    ms_tempFPSText = string.Format("{0}\ngraphicsShaderLevel:{1}",
-                        ms_tempFPSText, SystemInfo.graphicsShaderLevel);
-                    ms_tempFPSText = string.Format("{0}\ngraphicsDeviceVendorID:{1}",
-                        ms_tempFPSText, SystemInfo.graphicsDeviceVendorID);
-                    ms_tempFPSText = string.Format("{0}\nmaxComputeWorkGroupSizeX:{1}",
-                        ms_tempFPSText, SystemInfo.maxComputeWorkGroupSizeX);
-                    ms_tempFPSText = string.Format("{0}\nmaxComputeWorkGroupSize:{1}",
-                        ms_tempFPSText, SystemInfo.maxComputeWorkGroupSize);
+                    //ms_tempFPSText = string.Format("{0}\ngraphicsMultiThreaded:{1}",
+                    //    ms_tempFPSText, SystemInfo.graphicsMultiThreaded);
+                    //ms_tempFPSText = string.Format("{0}\nsupportsInstancing:{1}",
+                    //    ms_tempFPSText, SystemInfo.supportsInstancing);
+                    //ms_tempFPSText = string.Format("{0}\nsupportsComputeShaders:{1}",
+                    //    ms_tempFPSText, SystemInfo.supportsComputeShaders);
+                    //ms_tempFPSText = string.Format("{0}\nmaxComputeBufferInputsCompute:{1}",
+                    //    ms_tempFPSText, SystemInfo.maxComputeBufferInputsCompute);
+                    //ms_tempFPSText = string.Format("{0}\nmaxComputeBufferInputsVertex:{1}",
+                    //    ms_tempFPSText, SystemInfo.maxComputeBufferInputsVertex);
+                    //ms_tempFPSText = string.Format("{0}\nmaxComputeBufferInputsFragment:{1}",
+                    //    ms_tempFPSText, SystemInfo.maxComputeBufferInputsFragment);
+                    //ms_tempFPSText = string.Format("{0}\ngraphicsShaderLevel:{1}",
+                    //    ms_tempFPSText, SystemInfo.graphicsShaderLevel);
+                    //ms_tempFPSText = string.Format("{0}\ngraphicsDeviceVendorID:{1}",
+                    //    ms_tempFPSText, SystemInfo.graphicsDeviceVendorID);
+                    //ms_tempFPSText = string.Format("{0}\nmaxComputeWorkGroupSizeX:{1}",
+                    //    ms_tempFPSText, SystemInfo.maxComputeWorkGroupSizeX);
+                    //ms_tempFPSText = string.Format("{0}\nmaxComputeWorkGroupSize:{1}",
+                    //    ms_tempFPSText, SystemInfo.maxComputeWorkGroupSize);
                 }
                 if (AppendExtendString != null)
                 {

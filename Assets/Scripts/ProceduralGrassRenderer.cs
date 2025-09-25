@@ -450,10 +450,7 @@ namespace SB.ProceduralGrass
 
         private void AppendExtendStringCB(ref string text)
         {
-            m_indirectArgumentsBuffer.GetData(ms_tempIndirectArguments);
-
-            text = string.Format("\n=============\nLoadTime:{0}S\nInstanceCount:{1}", m_executeTime / 1000.0f,
-                ms_tempIndirectArguments[1]);
+            text = string.Format("\n=============\nLoadTime:{0}S", m_executeTime / 1000.0f);
         }
 
 #if UNITY_EDITOR
