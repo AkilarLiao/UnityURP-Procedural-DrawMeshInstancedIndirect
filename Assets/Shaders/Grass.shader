@@ -27,7 +27,7 @@ Shader "Hidden/SB/Grass"
             #pragma multi_compile _ _SHADOWS_SOFT            
             #pragma multi_compile _ _ADDITIONAL_LIGHTS
             #pragma multi_compile_fog
-
+            #pragma multi_compile_local _ PROCESS_BILLBOARD
             #include "GrassImpl.hlsl"
             ENDHLSL
         }        

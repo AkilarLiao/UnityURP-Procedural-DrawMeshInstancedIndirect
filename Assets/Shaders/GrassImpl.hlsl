@@ -34,14 +34,13 @@ half4 _ShadingParams;
 float4 _InteractorCollisionSphere;
 float4 _FilterResultRT_TexelSize;
 
-half4 GetAlbedoColor(in half2 worldUV, in float3 instancePositoin, in half affectWeight)
+half4 GetAlbedoColor(in half2 worldUV, in float viewDistance, in half affectWeight)
 {
     half4 albedoColor;
     albedoColor.rgb = SAMPLE_TEXTURE2D_LOD(_ColorTexture, sampler_ColorTexture,
         worldUV * _ShadingParams.y, 0).rgb;
 
-    float3 viewPositionWS = TransformWorldToView(instancePositoin);
-    float viewSquareDistance = dot(viewPositionWS, viewPositionWS);
+    float viewSquareDistance = viewDistance * viewDistance;
     float clampViewSquareDistance = clamp(viewSquareDistance, _FadeStartSquareDistance, _MaxViewSquareDistance);
 
     albedoColor.a = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) /
@@ -56,17 +55,19 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     VertexOutput output;
 
     half2 worldUV;
-    float3 instancePositoin, positionWS;
+    //float3 instancePosition, positionWS;
+    float3 positionWS;
     half affectWeight;
     half3 normalWS;
+    float viewDistance;
     GetInstanceTransform(instanceID, _FilterResultRT_TexelSize, input.positionOS, input.normalOS,
         _WindDirection, _InteractorCollisionSphere, _ShadingParams.w, _ShadingParams.x,
-        worldUV, instancePositoin, positionWS, affectWeight, normalWS);
+        worldUV, positionWS, affectWeight, normalWS, viewDistance);
 
     output.positionCS = TransformWorldToHClip(positionWS);
 
     output.positionSS = ComputeScreenPos(output.positionCS);
-    half4 albedoColor = GetAlbedoColor(worldUV, instancePositoin, affectWeight);
+    half4 albedoColor = GetAlbedoColor(worldUV, viewDistance, affectWeight);
     //non billboard : 223 fps
     //billboard : 252 fps
     output.resultColor = CalculateBlinnPhong(positionWS, normalWS, output.positionCS, albedoColor);

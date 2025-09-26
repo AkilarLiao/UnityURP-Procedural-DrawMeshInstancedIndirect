@@ -6,7 +6,9 @@
 
 #pragma kernel CSMain
 
+//compute shader有沒有寫local，完全沒差，因為他不是透過材質引用，所以全部變體都會建立…
 #pragma multi_compile_local _ PROCESS_WEIGHT_MAP_FILTER
+#pragma multi_compile_local _ PROCESS_BILLBOARD
 
 #include "GrassParams.hlsl"
 #include "SimplexNoise.hlsl"
@@ -113,7 +115,11 @@ half CalculateWind(in float2 position2D)
 	return wind * _WindWeight;
 }
 
-void GetInstanceTransform(in uint instanceOffest, out float2 position2D, out half yawRadians)
+void GetInstanceTransform(in uint instanceOffest, out float2 position2D 
+#if !defined(PROCESS_BILLBOARD)
+	, out half yawRadians
+#endif //!defined(PROCESS_BILLBOARD)
+)
 {
 	uint destCellIndex = _VisibleCellIndexBuffer[instanceOffest / _CellInstanceCount];
 
@@ -140,7 +146,9 @@ void GetInstanceTransform(in uint instanceOffest, out float2 position2D, out hal
 
 	position2D = nonOffestTransform + instanceRandomOffest * _JitterStrength;	
 
+#if !defined(PROCESS_BILLBOARD)
 	yawRadians = instanceRandomOffest.x * sc_towPI;
+#endif //!defined(PROCESS_BILLBOARD)
 }
 
 half2 GetWorldUV(in float2 worldPosition2D)
@@ -158,8 +166,13 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 		return;
 
 	float2 position2D;
+#if !defined(PROCESS_BILLBOARD)
 	half yawRadians;
-	GetInstanceTransform(instanceIndex, position2D, yawRadians);	
+	GetInstanceTransform(instanceIndex, position2D,
+		yawRadians);
+#else
+	GetInstanceTransform(instanceIndex, position2D);
+#endif //!defined(PROCESS_BILLBOARD)
 
 	if ((position2D.x < _WorldMinMax.x) ||
 		(position2D.y < _WorldMinMax.y) ||
@@ -192,6 +205,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 		return;
 
 	uint index = _InstanceCountBuffer.IncrementCounter();
+	
 	uint offestIndex = index * 2;
 
 	half2 worldUV = GetWorldUV(position2D);
@@ -201,6 +215,26 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	++offestIndex;
 
+#ifdef PROCESS_BILLBOARD
+	half3 normalWS = half3(0.0, 1.0, 0.0);
+#endif
+
 	_FilterResultRT[int2(offestIndex % _FilterResultRTSize.x, offestIndex / _FilterResultRTSize.x)] =
-		float4(sin(yawRadians), cos(yawRadians), CalculateWind(position2D), 0.0);
+		float4(
+			CalculateWind(position2D),
+#if !defined(PROCESS_BILLBOARD)
+			sin(yawRadians), 
+			cos(yawRadians),			
+			0.0
+#else
+			normalWS
+#endif //!defined(PROCESS_BILLBOARD)
+			);
+
+//#ifdef PROCESS_BILLBOARD
+//	half3 normalWS = half3(0.0, 1.0, 0.0);
+//	++offestIndex;
+//	_FilterResultRT[int2(offestIndex % _FilterResultRTSize.x, offestIndex / _FilterResultRTSize.x)] =
+//		float4(normalWS, 0.0);
+//#endif //PROCESS_BILLBOARD
 }

@@ -7,6 +7,9 @@
 #define GRASS_TRANSFORM_UTILITY_INCLUDED
 #include "GrassParams.hlsl"
 
+//triangle flicker
+static const float sc_farAwayFlickerRatio = 0.00225;
+
 TEXTURE2D(_FilterResultRT); SAMPLER(sampler_FilterResultRT);
 
 half4 SampleFilterResultRT(in uint destInstanceID, in float4 filterResultRTTexelSize)
@@ -28,9 +31,15 @@ void ConverRatioPosition(in half2 worldUV, out float2 position2D)
 }
 
 void GetGrassInstanceData(in uint instanceID, in float4 filterResultRTTexelSize,
-    out half2 worldUV, out float2 position2D, out half2 sizeFactor, out half yawSin,
-    out half yawCos, out half wind)
-{
+    out half2 worldUV, out float2 position2D, out half2 sizeFactor, out half wind,
+#ifdef PROCESS_BILLBOARD
+    out half3 normalWS
+#else
+    out half yawSin,
+    out half yawCos
+#endif
+)
+{   
     uint destInstanceID = instanceID * 2;
     half4 data = SampleFilterResultRT(destInstanceID, filterResultRTTexelSize);
     worldUV = data.xy;
@@ -38,15 +47,23 @@ void GetGrassInstanceData(in uint instanceID, in float4 filterResultRTTexelSize,
     sizeFactor = data.zw;
 
     data = SampleFilterResultRT(++destInstanceID, filterResultRTTexelSize);
-    yawSin = data.x;
-    yawCos = data.y;
-    wind = data.z;
+    wind = data.x;
+#ifdef PROCESS_BILLBOARD
+    normalWS = data.yzw;
+#else
+    yawSin = data.y;
+    yawCos = data.z;
+#endif //PROCESS_BILLBOARD
+//#ifdef PROCESS_BILLBOARD
+//    data = SampleFilterResultRT(++destInstanceID, filterResultRTTexelSize);
+//    normalWS = data.xyz;
+//#endif
 }
 
-void ApplyInteractorOffest(in float3 instancePositoin, in float4 collisionSphere,
+void ApplyInteractorOffest(in float3 instancePosition, in float4 collisionSphere,
     in half applyWeight, inout float3 positionWS)
 {
-    float3 delta = instancePositoin - collisionSphere.xyz;
+    float3 delta = instancePosition - collisionSphere.xyz;
     float squareDistance = dot(delta, delta);
     float maxCheckRadius = _MaxInstanceSize + collisionSphere.w;
     float maxCheckSquareRadius = maxCheckRadius * maxCheckRadius;
@@ -86,26 +103,45 @@ void CalculateNormal(
     normalWS = normalize(normalWS);
 }
 
-void GetInstanceTransform(in uint instanceID, in float4 filterResultRTTexelSize, in float4 positionOS,
-    in half3 normalOS, in half2 windDirection, in float4 interactorCollisionSphere,
-    in half interactorAffectWeight, in half windNormalWeight,
-    out half2 worldUV,
-    out float3 instancePositoin,
-    out float3 positionWS,
-    out half affectWeight,
-    out half3 normalWS)
-{   
-    float2 position2D;
-    half2 sizeFactor;
-    half yawSin, yawCos, wind;
+void GetBillboardWorldPosition(in float3 positionOS,
+    in float3 instancePosition,
+    in half2 sizeFactor,    
+    in float viewDistance,
+    out float3 positionWS)
+{
+    half3 cameraTransformForwardWS = -UNITY_MATRIX_V[2].xyz;
+    half3 cameraTransformUpWS = UNITY_MATRIX_V[1].xyz;
+    half3 cameraTransformRightWS = UNITY_MATRIX_V[0].xyz;
 
-    GetGrassInstanceData(instanceID, filterResultRTTexelSize, worldUV, position2D, sizeFactor, yawSin, yawCos, wind);
+    //Expand Billboard (billboard Left+right)
+    float3 billboardPositionOS = positionOS.x * cameraTransformRightWS * sizeFactor.x;
+    //Expand Billboard (billboard Up)
+    billboardPositionOS += positionOS.y * cameraTransformUpWS * sizeFactor.y;
 
-    instancePositoin = float3(position2D.x, 0.0, position2D.y);
+    float3 bendDir = cameraTransformForwardWS;
 
-    float3 viewPositionWS = TransformWorldToView(instancePositoin);
-    float viewSquareDistance = dot(viewPositionWS, viewPositionWS);
+    //make grass shorter when bending, looks better
+    //bendDir.xz *= 0.5;
 
+    //prevent grass become too long if camera forward 
+    //is / near parallel to ground
+    bendDir.y = min(-0.5, bendDir.y);
+
+    //camera distance scale (make grass width larger if grass is
+    //far away to camera, to hide smaller than pixel size triangle flicker)
+    //viewWS = _WorldSpaceCameraPos - instancePosition;
+    //viewWSLength = length(viewWS);
+
+    billboardPositionOS += cameraTransformRightWS * positionOS.x
+        * max(0, viewDistance * sc_farAwayFlickerRatio);
+
+    positionWS = billboardPositionOS + instancePosition;
+}
+
+void GetRotateWorldPosition(in float3 positionOS, in float3 instancePosition,
+    in half2 sizeFactor, in half yawSin, in half yawCos,
+    out float3 positionWS)
+{
     float3 destPositionOS = float3(
         positionOS.x * sizeFactor.x,
         positionOS.y * sizeFactor.y,
@@ -116,17 +152,51 @@ void GetInstanceTransform(in uint instanceID, in float4 filterResultRTTexelSize,
         destPositionOS.y,
         destPositionOS.x * yawSin + destPositionOS.z * yawCos);
 
-    positionWS = instancePositoin + destPositionOS;
+    positionWS = instancePosition + destPositionOS;
+}
+
+void GetInstanceTransform(in uint instanceID, in float4 filterResultRTTexelSize, in float4 positionOS,
+    in half3 normalOS, in half2 windDirection, in float4 interactorCollisionSphere,
+    in half interactorAffectWeight, in half windNormalWeight,
+    out half2 worldUV,
+    out float3 positionWS,
+    out half affectWeight,
+    out half3 normalWS,    
+    out float viewDistance)
+{   
+    float2 position2D;
+    half2 sizeFactor;
+    half wind;
+#ifdef PROCESS_BILLBOARD
+    GetGrassInstanceData(instanceID, filterResultRTTexelSize, worldUV, position2D, sizeFactor, wind,
+        normalWS);    
+#else
+    half yawSin, yawCos;
+    GetGrassInstanceData(instanceID, filterResultRTTexelSize, worldUV, position2D, sizeFactor, wind,
+        yawSin,
+        yawCos);
+#endif //PROCESS_BILLBOARD
+
+    float3 instancePosition = float3(position2D.x, 0.0, position2D.y);
+    viewDistance = length(_WorldSpaceCameraPos - instancePosition);
 
     affectWeight = positionOS.y;
+    
+#if !defined(PROCESS_BILLBOARD)
+    GetRotateWorldPosition(positionOS.xyz, instancePosition, sizeFactor, yawSin, yawCos, positionWS);
+#else
+    GetBillboardWorldPosition(positionOS.xyz, instancePosition, sizeFactor, viewDistance, positionWS);
+#endif
 
     float2 windOffest = windDirection * wind * affectWeight;
     positionWS.xz += windOffest;
 
-    ApplyInteractorOffest(instancePositoin, interactorCollisionSphere,
+    ApplyInteractorOffest(instancePosition, interactorCollisionSphere,
         step(0.5, affectWeight) * interactorAffectWeight, positionWS);
     
+#if !defined(PROCESS_BILLBOARD)
     CalculateNormal(normalOS, yawSin, yawCos, windNormalWeight * affectWeight, windOffest, normalWS);
+#endif
 }
 
 #endif //GRASS_INSTANCE_INCLUDED
