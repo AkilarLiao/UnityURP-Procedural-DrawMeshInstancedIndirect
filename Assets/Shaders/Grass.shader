@@ -30,7 +30,18 @@ Shader "Hidden/SB/Grass"
             #pragma multi_compile_local _ PROCESS_BILLBOARD
             #include "GrassImpl.hlsl"
             ENDHLSL
-        }        
-        
+        }
+
+        Pass
+        {
+            ColorMask R
+            HLSLPROGRAM            
+            #pragma vertex VertexProgram
+            #pragma fragment FragmentProgram
+            #pragma multi_compile_local _ PROCESS_BILLBOARD            
+            #define PROCESS_PRE_DEPTH_PASS
+            #include "GrassImpl.hlsl"
+            ENDHLSL
+        }
     }
 }

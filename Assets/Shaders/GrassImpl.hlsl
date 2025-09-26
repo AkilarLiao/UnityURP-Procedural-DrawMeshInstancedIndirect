@@ -25,6 +25,8 @@ struct VertexOutput
     float4 positionSS               : TEXCOORD1;
 };
 
+static const half sc_alphaCutoff = 0.5;
+
 TEXTURE2D(_ColorTexture); SAMPLER(sampler_ColorTexture);
 
 float _FadeStartSquareDistance;
@@ -41,10 +43,12 @@ half4 GetAlbedoColor(in half2 worldUV, in float viewDistance, in half affectWeig
         worldUV * _ShadingParams.y, 0).rgb;
 
     float viewSquareDistance = viewDistance * viewDistance;
-    float clampViewSquareDistance = clamp(viewSquareDistance, _FadeStartSquareDistance, _MaxViewSquareDistance);
-
+    float clampViewSquareDistance = clamp(viewSquareDistance, _FadeStartSquareDistance,
+        _MaxViewSquareDistance);
+    
     albedoColor.a = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) /
         (_MaxViewSquareDistance - _FadeStartSquareDistance);
+
     albedoColor.a *= affectWeight;
 
     return albedoColor;
@@ -67,11 +71,18 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
     output.positionCS = TransformWorldToHClip(positionWS);
 
     output.positionSS = ComputeScreenPos(output.positionCS);
-    half4 albedoColor = GetAlbedoColor(worldUV, viewDistance, affectWeight);
-    //non billboard : 223 fps
-    //billboard : 252 fps
+
+    float viewSquareDistance = viewDistance * viewDistance;
+    float clampViewSquareDistance = clamp(viewSquareDistance, _FadeStartSquareDistance,
+        _MaxViewSquareDistance);
+    half farFadeWeight = 1.0 - (clampViewSquareDistance - _FadeStartSquareDistance) /
+        (_MaxViewSquareDistance - _FadeStartSquareDistance);
+
+    affectWeight *= farFadeWeight;
+
+    half4 albedoColor = half4(SAMPLE_TEXTURE2D_LOD(_ColorTexture, sampler_ColorTexture,
+        worldUV * _ShadingParams.y, 0).rgb, affectWeight);
     output.resultColor = CalculateBlinnPhong(positionWS, normalWS, output.positionCS, albedoColor);
-    //output.resultColor = albedoColor;
     return output;
 }
 

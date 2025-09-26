@@ -14,7 +14,7 @@ using UnityEngine.Rendering.Universal;
 namespace SB.ProceduralGrass
 {
     [ExecuteAlways]
-    public class ProceduralGrassRenderer : MonoBehaviour, IAddPassInterface
+    public class ProceduralGrassRenderer : MonoBehaviour
     {
         public void UpdateMainInteractorTransform(in Vector3 position, float radius)
         {
@@ -41,15 +41,10 @@ namespace SB.ProceduralGrass
                 m_targetDisplayFPS.AppendExtendString -= AppendExtendStringCB;
                 m_targetDisplayFPS.AppendExtendString += AppendExtendStringCB;
             }
-
-            AddPassRenderFeature.RemoveAddPassInterfaces(this);
-            AddPassRenderFeature.AppendAddPassInterfaces(this);
         }
 
         private void OnDisable()
         {
-            AddPassRenderFeature.RemoveAddPassInterfaces(this);
-
             if (m_targetDisplayFPS)
                 m_targetDisplayFPS.AppendExtendString -= AppendExtendStringCB;
 
@@ -175,22 +170,29 @@ namespace SB.ProceduralGrass
 #endif //UNITY_EDITOR
         }
 
-        private void OnBeginCameraRendering(ScriptableRenderContext context, Camera camera)
+        private bool IsSkipCamera(Camera camera)
         {
             var cameraType = camera.cameraType;
             if ((cameraType != CameraType.Game) &&
                 (cameraType != CameraType.SceneView))
             {
                 if (cameraType == CameraType.Reflection)
-                    return;
+                    return true;
                 //Hard code
                 //When cameraType == CameraType.Preview, and
                 //camera.clearFlags == CameraClearFlags.Depth
                 //It is represented as MaterialPreviewCamera
                 else if ((cameraType == CameraType.Preview) &&
                     (camera.clearFlags == CameraClearFlags.Depth))
-                    return;
+                    return true;
             }
+            return false;
+        }
+
+        private void OnBeginCameraRendering(ScriptableRenderContext context, Camera camera)
+        {
+            if (IsSkipCamera(camera))
+                return;
 
             var cullingCamera = camera;
 #if UNITY_EDITOR
@@ -198,7 +200,11 @@ namespace SB.ProceduralGrass
                 cullingCamera = Camera.main;
 #endif //UNITY_EDITOR
 
-            m_visableCellsCuller.ProcessCulling(cullingCamera, in m_cellSize, in m_proceduralGrassData.m_worldRect,
+            Bounds renderBounds;
+            Vector2 cellSize;
+            m_grassParamsSector.GetRenderBoundAndCellSize(out renderBounds, out cellSize);
+
+            m_visableCellsCuller.ProcessCulling(cullingCamera, in cellSize, in m_proceduralGrassData.m_worldRect,
                 in msr_worldMinMaxHeight);
 
             var visibleCellIndices = m_visableCellsCuller.GetVisibleCellIndices();
@@ -225,7 +231,7 @@ namespace SB.ProceduralGrass
 
             ComputeBuffer.CopyCount(m_instanceCountBuffer, m_indirectArgumentsBuffer, sizeof(uint));
 
-            Graphics.DrawMeshInstancedIndirect(GetGrassMesh(), 0, m_grassMaterial, m_renderBound, 
+            Graphics.DrawMeshInstancedIndirect(GetGrassMesh(), 0, m_grassMaterial, renderBounds, 
                 m_indirectArgumentsBuffer, 0, null, ShadowCastingMode.Off, true, 0, camera);
         }
 
@@ -411,10 +417,6 @@ private Mesh GetGrassMesh()
 #endif
         }
 
-        void IAddPassInterface.OnAddPass(ScriptableRenderer renderer, in RenderingData renderingData)
-        {
-        }
-
 #if UNITY_EDITOR
         private void EditUpdate()
         {
@@ -442,13 +444,10 @@ private Mesh GetGrassMesh()
         private Mesh m_targetGrassMesh = null;
         private Mesh m_pyramidMesh = null;
         private Mesh m_triangleMesh = null;
-
         private Material m_grassMaterial = null;
-        private Bounds m_renderBound;
 
         private uint[] m_visibleCellIndices = null;
         private ComputeBuffer m_visibleCellIndexBuffer = null;
-        private Vector2 m_cellSize = Vector2.one;
 
         private ComputeBuffer m_instanceCountBuffer = null;
         private RenderTexture m_filterResultRT = null;
