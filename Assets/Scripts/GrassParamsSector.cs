@@ -167,16 +167,12 @@ namespace SB.ProceduralGrass
         
         private static class ProceduralInstanceFilterID
         {
-            //public static readonly int msr_offestCount = Shader.PropertyToID("_OffsetCount");
-            //public static readonly int msr_maxProcessCount = Shader.PropertyToID("_MaxProcessCount");
-
             public static readonly int msr_cellSize = Shader.PropertyToID("_CellSize");
             public static readonly int msr_cellColumnCount = Shader.PropertyToID("_CellColumnCount");
             public static readonly int msr_cellInstanceColumnCount = Shader.PropertyToID("_CellInstanceColumnCount");
             public static readonly int msr_cellInstanceCount = Shader.PropertyToID("_CellInstanceCount");
             public static readonly int msr_jitterStrength = Shader.PropertyToID("_JitterStrength");
             public static readonly int msr_InstanceSpacing = Shader.PropertyToID("_InstanceSpacing");
-
 
             public static readonly int msr_widthSizeInfo = Shader.PropertyToID("_WidthSizeInfo");
             public static readonly int msr_heightSizeInfo = Shader.PropertyToID("_HeightSizeInfo");
@@ -188,9 +184,6 @@ namespace SB.ProceduralGrass
             public static readonly int msr_windBTilingWrap = Shader.PropertyToID("_WindBTilingWrap");
             public static readonly int msr_WindCParams = Shader.PropertyToID("_WindCParams");
             public static readonly int msr_windCTilingWrap = Shader.PropertyToID("_WindCTilingWrap");
-            
-            //public static readonly int msr_currentTime = Shader.PropertyToID("_CurrentTime");
-            //public static readonly int msr_weightMap = Shader.PropertyToID("_WeightMap");
         }
 
         private static class GrassShaderID
@@ -198,10 +191,7 @@ namespace SB.ProceduralGrass
             public static readonly int msr_fadeStartSquareDistance = Shader.PropertyToID("_FadeStartSquareDistance");
             public static readonly int msr_ColorTexture = Shader.PropertyToID("_ColorTexture");
             public static readonly int msr_windDirection = Shader.PropertyToID("_WindDirection");
-            //public static readonly int msr_interactorCollisionSphere = Shader.PropertyToID("_InteractorCollisionSphere");
             public static readonly int msr_shadingParams = Shader.PropertyToID("_ShadingParams");
         }
-
-        //private const string mc_processWeightMapFilterKeyword = "PROCESS_WEIGHT_MAP_FILTER";
     }
 }

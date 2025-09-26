@@ -212,14 +212,15 @@ namespace SB.ProceduralGrass
             m_instanceCountBuffer.SetCounterValue(0);
 
             ref uint2 cellInstanceColumnRowCount = ref m_proceduralGrassData.m_cellInstanceColumnRowCount;
-            var processInstanceCount = cellInstanceColumnRowCount.x * cellInstanceColumnRowCount.y * visibleCellIndexCount;
+            var processInstanceCount = cellInstanceColumnRowCount.x * cellInstanceColumnRowCount.y * 
+                visibleCellIndexCount;
 
             DispatchComputeInBatches(m_targetProceduralInstanceFilterCS, (int)processInstanceCount);
 
             ComputeBuffer.CopyCount(m_instanceCountBuffer, m_indirectArgumentsBuffer, sizeof(uint));
 
-            Graphics.DrawMeshInstancedIndirect(GetGrassMesh(), 0, m_grassMaterial, m_renderBound, m_indirectArgumentsBuffer,
-                0, null, ShadowCastingMode.Off, true, 0, camera);
+            Graphics.DrawMeshInstancedIndirect(GetGrassMesh(), 0, m_grassMaterial, m_renderBound, 
+                m_indirectArgumentsBuffer, 0, null, ShadowCastingMode.Off, true, 0, camera);
         }
 
         private void RefereshVisibleCellIndexBuffer()
