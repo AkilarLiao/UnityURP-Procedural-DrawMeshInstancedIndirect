@@ -9,11 +9,12 @@ using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace SB.ProceduralGrass
 {
     [ExecuteAlways]
-    public class ProceduralGrassRenderer : MonoBehaviour
+    public class ProceduralGrassRenderer : MonoBehaviour, IAddPassInterface
     {
         public void UpdateMainInteractorTransform(in Vector3 position, float radius)
         {
@@ -40,10 +41,15 @@ namespace SB.ProceduralGrass
                 m_targetDisplayFPS.AppendExtendString -= AppendExtendStringCB;
                 m_targetDisplayFPS.AppendExtendString += AppendExtendStringCB;
             }
+
+            AddPassRenderFeature.RemoveAddPassInterfaces(this);
+            AddPassRenderFeature.AppendAddPassInterfaces(this);
         }
 
         private void OnDisable()
         {
+            AddPassRenderFeature.RemoveAddPassInterfaces(this);
+
             if (m_targetDisplayFPS)
                 m_targetDisplayFPS.AppendExtendString -= AppendExtendStringCB;
 
@@ -405,6 +411,10 @@ private Mesh GetGrassMesh()
 #endif
         }
 
+        void IAddPassInterface.OnAddPass(ScriptableRenderer renderer, in RenderingData renderingData)
+        {
+        }
+
 #if UNITY_EDITOR
         private void EditUpdate()
         {
@@ -470,7 +480,8 @@ private Mesh GetGrassMesh()
         public static readonly int msr_maxProcessCountID = Shader.PropertyToID("_MaxProcessCount");
         public static readonly int msr_offestCountID = Shader.PropertyToID("_OffsetCount");
 
-        public static readonly int msr_interactorCollisionSphereID = Shader.PropertyToID("_InteractorCollisionSphere");
+        public static readonly int msr_interactorCollisionSphereID = 
+            Shader.PropertyToID("_InteractorCollisionSphere");
 
         private const float mc_grassMeshWidth = 0.25f;
         private const string mc_processWeightMapFilterKeyword = "PROCESS_WEIGHT_MAP_FILTER";
