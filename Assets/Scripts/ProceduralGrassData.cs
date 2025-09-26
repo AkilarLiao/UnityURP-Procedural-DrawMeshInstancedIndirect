@@ -87,6 +87,10 @@ namespace SB.ProceduralGrass
         [Range(1.0f, 8.0f)]
         public float m_fadePow = 5.0f;
 
+        [Tooltip("The random normal weight is only used in billboard mode.")]
+        [Range(0.01f, 1.0f)]
+        public float m_randomNormalWeight = 0.15f;
+
         [Tooltip("grass color texture")]
         public Texture2D m_grassColorTexture = null;
 
@@ -132,7 +136,7 @@ namespace SB.ProceduralGrass
             [Range(0.0f, 360.0f)]
             public float m_windYawAngle = 0.0f;
 
-            [Tooltip("The wind normal weight.")]
+            [Tooltip("The wind normal weight is only usage in pyramid mode.")]
             [Range(0.0f, 1.0f)]
             public float m_windNormalWeight = 0.25f;
 

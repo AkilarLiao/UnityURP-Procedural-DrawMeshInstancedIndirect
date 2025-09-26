@@ -212,6 +212,11 @@ namespace SB.ProceduralGrass
             if (visibleCellIndexCount <= 0)
                 return;
 
+
+
+            
+
+
             m_targetProceduralInstanceFilterCS.SetVector(msr_cameraPositionID,
                 camera.transform.position);
 
@@ -220,6 +225,13 @@ namespace SB.ProceduralGrass
 
             m_targetProceduralInstanceFilterCS.SetMatrix(msr_viewProjectionMatrixID,
                 camera.projectionMatrix * camera.worldToCameraMatrix);
+
+            if (m_meshMode == MESH_MDOE.BILLBOARD)
+            {
+                var cameraTransform = camera.transform;
+                m_targetProceduralInstanceFilterCS.SetVector(msr_cameraForwardWSID, cameraTransform.forward);
+                m_targetProceduralInstanceFilterCS.SetVector(msr_cameraRightWSID, cameraTransform.right);
+            }
 
             m_instanceCountBuffer.SetCounterValue(0);
 
@@ -478,10 +490,10 @@ private Mesh GetGrassMesh()
         public static readonly int msr_weightMapID = Shader.PropertyToID("_WeightMap");
         public static readonly int msr_maxProcessCountID = Shader.PropertyToID("_MaxProcessCount");
         public static readonly int msr_offestCountID = Shader.PropertyToID("_OffsetCount");
-
-        public static readonly int msr_interactorCollisionSphereID = 
-            Shader.PropertyToID("_InteractorCollisionSphere");
-
+        public static readonly int msr_interactorCollisionSphereID = Shader.PropertyToID("_InteractorCollisionSphere");
+        public static readonly int msr_cameraForwardWSID = Shader.PropertyToID("_CameraForwardWS");
+        public static readonly int msr_cameraRightWSID = Shader.PropertyToID("_CameraRightWS");
+        
         private const float mc_grassMeshWidth = 0.25f;
         private const string mc_processWeightMapFilterKeyword = "PROCESS_WEIGHT_MAP_FILTER";
         private const string mc_processBillboardKeyword = "PROCESS_BILLBOARD";

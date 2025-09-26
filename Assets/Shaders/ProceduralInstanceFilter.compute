@@ -6,7 +6,7 @@
 
 #pragma kernel CSMain
 
-//compute shader有沒有寫local，完全沒差，因為他不是透過材質引用，所以全部變體都會建立…
+//A compute shader only uses local keywords; they are not controlled via Shader.SetKeyword.
 #pragma multi_compile_local _ PROCESS_WEIGHT_MAP_FILTER
 #pragma multi_compile_local _ PROCESS_BILLBOARD
 
@@ -64,6 +64,12 @@ half4 _WindCTilingWrap;
 
 float _CurrentTime;
 
+#ifdef PROCESS_BILLBOARD
+half3 _CameraForwardWS;
+half3 _CameraRightWS;
+half _RandomNormalWeight;
+#endif //PROCESS_BILLBOARD
+
 float2 GetRandomOffest2D(in float2 point2D)
 {
 	float3 point3D = frac(float3(point2D.xyx) * s_cRandomVector);
@@ -115,7 +121,7 @@ half CalculateWind(in float2 position2D)
 	return wind * _WindWeight;
 }
 
-void GetInstanceTransform(in uint instanceOffest, out float2 position2D 
+void GetInstanceTransform(in uint instanceOffest, out float2 position2D, out float2 randomOffest2D
 #if !defined(PROCESS_BILLBOARD)
 	, out half yawRadians
 #endif //!defined(PROCESS_BILLBOARD)
@@ -140,7 +146,7 @@ void GetInstanceTransform(in uint instanceOffest, out float2 position2D
 		worldOrigion.x + instanceIndex.x * _InstanceSpacing.x,
 		worldOrigion.y + instanceIndex.y * _InstanceSpacing.y);
 
-	float2 randomOffest2D = GetRandomOffest2D(nonOffestTransform);
+	randomOffest2D = GetRandomOffest2D(nonOffestTransform);
 
 	float2 instanceRandomOffest = randomOffest2D * 2.0 - 1.0;
 
@@ -165,13 +171,13 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	if (instanceIndex >= _MaxProcessCount)
 		return;
 
-	float2 position2D;
+	float2 position2D, randomOffest2D;
 #if !defined(PROCESS_BILLBOARD)
 	half yawRadians;
-	GetInstanceTransform(instanceIndex, position2D,
+	GetInstanceTransform(instanceIndex, position2D, randomOffest2D,
 		yawRadians);
 #else
-	GetInstanceTransform(instanceIndex, position2D);
+	GetInstanceTransform(instanceIndex, position2D, randomOffest2D);
 #endif //!defined(PROCESS_BILLBOARD)
 
 	if ((position2D.x < _WorldMinMax.x) ||
@@ -215,26 +221,30 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	++offestIndex;
 
-#ifdef PROCESS_BILLBOARD
-	half3 normalWS = half3(0.0, 1.0, 0.0);
+	half wind = CalculateWind(position2D);
+
+#ifdef PROCESS_BILLBOARD	
+	float hash = frac(sin(dot(position2D, float2(12.9898, 78.233))) * 43758.5453);
+	float angle = hash * 6.2831853;
+	float2 randDir = float2(cos(angle), sin(angle));
+
+	half3 randomAddToN =
+		(_RandomNormalWeight * randDir.x) * _CameraRightWS +
+		(_RandomNormalWeight * randDir.y) * _CameraForwardWS;
+
+	half3 windAddToN = wind * (-0.25 * _CameraRightWS);
+	half3 normalWS = normalize(half3(0,1,0) + randomAddToN);
 #endif
 
 	_FilterResultRT[int2(offestIndex % _FilterResultRTSize.x, offestIndex / _FilterResultRTSize.x)] =
 		float4(
-			CalculateWind(position2D),
+			wind,
 #if !defined(PROCESS_BILLBOARD)
 			sin(yawRadians), 
-			cos(yawRadians),			
+			cos(yawRadians),
 			0.0
 #else
 			normalWS
 #endif //!defined(PROCESS_BILLBOARD)
 			);
-
-//#ifdef PROCESS_BILLBOARD
-//	half3 normalWS = half3(0.0, 1.0, 0.0);
-//	++offestIndex;
-//	_FilterResultRT[int2(offestIndex % _FilterResultRTSize.x, offestIndex / _FilterResultRTSize.x)] =
-//		float4(normalWS, 0.0);
-//#endif //PROCESS_BILLBOARD
 }
