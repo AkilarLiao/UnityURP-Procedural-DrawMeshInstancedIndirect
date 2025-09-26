@@ -175,5 +175,10 @@ namespace SB.ProceduralGrass
                 m_windWrap = windWrap;
             }
         }
+        private enum MESH_MDOE
+        {
+            PYRAMID,
+            BILLBOARD
+        };
     }
 }
