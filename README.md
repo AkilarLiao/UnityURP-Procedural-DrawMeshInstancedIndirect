@@ -2,6 +2,8 @@
 Procedural grass rendering in Unity URP using DrawMeshInstancedIndirect and WeightMap control.
 ---
 
+![Performance Example](Documents/Performance_S10.jpg)
+
 ## Features
 
 - Purely procedural instance data generation (no pre-generated assets)
