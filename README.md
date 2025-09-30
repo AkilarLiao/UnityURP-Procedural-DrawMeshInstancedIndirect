@@ -4,6 +4,9 @@ Procedural grass rendering in Unity URP using DrawMeshInstancedIndirect and Weig
 
 ![Performance Example](Documents/Performance_S10.jpg)
 
+You can directly test the demo on Android devices using the APK below:
+[Download UnityURP-Procedural-DrawMeshInstancedIndirect.apk](UnityURP-Procedural-DrawMeshInstancedIndirect.apk)
+
 ## Demo Video
 
 [![Demo Video](https://img.youtube.com/vi/7fhobV4y3yY/0.jpg)](https://www.youtube.com/watch?v=7fhobV4y3yY)
