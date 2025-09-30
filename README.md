@@ -21,3 +21,6 @@ If you need a ready-to-use, production-level system with:
 - User-friendly editor integration
 
 Check out [GPUPlantPainter on the Unity Asset Store](https://assetstore.unity.com/packages/tools/painting/gpuplantpainter-266965).
+
+For more complex procedural workflows (procedural random curve vegetation effects, similar to Ghost of Tsushima)
+check out: [GPUGrassBladePainter on the Unity Asset Store](https://assetstore.unity.com/packages/tools/painting/gpugrassbladepainter-316417).
