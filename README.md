@@ -17,6 +17,10 @@ You can directly test the demo on Android devices using the APK below:
 - WeightMap-based distribution control (e.g., for grass/vegetation)
 - DrawMeshInstancedIndirect rendering pipeline for maximum efficiency
 
+## Learn More
+
+[Read the full technical article on Google Blog](https://makedreamvsogre.blogspot.com/2025/09/building-cross-platform-gpu-procedural.html)
+
 ## Looking for a Complete Solution?
 
 If you need a ready-to-use, production-level system with:
