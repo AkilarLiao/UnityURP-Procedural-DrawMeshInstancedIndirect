@@ -6,7 +6,7 @@ Procedural grass rendering in Unity URP using DrawMeshInstancedIndirect and Weig
 
 ## Demo Video
 
-[Watch the demo video on YouTube](https://www.youtube.com/watch?v=7fhobV4y3yY)
+[![Demo Video](https://img.youtube.com/vi/7fhobV4y3yY/0.jpg)](https://www.youtube.com/watch?v=7fhobV4y3yY)
 
 ## Features
 
