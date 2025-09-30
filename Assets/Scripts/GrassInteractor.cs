@@ -17,6 +17,12 @@ namespace SB.ProceduralGrass
         {
             m_selfTransform = transform;
         }
+        private void OnDisable()
+        {
+            if (!m_targetGrassRenderer)
+                return;
+            m_targetGrassRenderer.UpdateMainInteractorTransform(Vector3.zero, 0.0f);
+        }
         private void LateUpdate()
         {
             if (!m_targetGrassRenderer)

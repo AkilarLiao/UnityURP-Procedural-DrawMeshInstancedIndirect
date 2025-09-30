@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace SB.ProceduralGrass
 {
@@ -87,7 +86,7 @@ namespace SB.ProceduralGrass
             m_filterResultRT.Create();
 
             m_targetProceduralInstanceFilterCS.SetVector(msr_filterResultRTSizeID,
-                new Vector2(m_filterResultSize.x, m_filterResultSize.y));            
+                new Vector2(m_filterResultSize.x, m_filterResultSize.y));
 
             m_grassParamsSector.ReInitialize(m_targetProceduralInstanceFilterCS, m_grassMaterial,
                 m_proceduralGrassData, m_filterResultRT);
@@ -211,11 +210,6 @@ namespace SB.ProceduralGrass
             var visibleCellIndexCount = visibleCellIndices.Count;
             if (visibleCellIndexCount <= 0)
                 return;
-
-
-
-            
-
 
             m_targetProceduralInstanceFilterCS.SetVector(msr_cameraPositionID,
                 camera.transform.position);
@@ -386,8 +380,9 @@ private Mesh GetGrassMesh()
         /// <param name="kernel">Index of the kernel to execute (default: 0).</param>
         /// <param name="threadGroupSize">Number of instances per thread group (default: 64).</param>
         /// <param name="maxDispatchCount">Maximum number of thread groups allowed per dispatch (default: 65535).</param>
-        private static void DispatchComputeInBatches(ComputeShader targetComputeShader, int processInstanceCount,
-            int kernel = 0, int threadGroupSize = 64, int maxDispatchCount = 65535)
+        private static void DispatchComputeInBatches(ComputeShader targetComputeShader,
+            int processInstanceCount, int kernel = 0, int threadGroupSize = 64, 
+            int maxDispatchCount = 65535)
         {
             // Set the total number of instances for the shader to access (for bounds checking)
             targetComputeShader.SetInt(msr_maxProcessCountID, processInstanceCount);
