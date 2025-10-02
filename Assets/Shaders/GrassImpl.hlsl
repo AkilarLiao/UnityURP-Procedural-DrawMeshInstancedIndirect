@@ -91,6 +91,8 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 
 half4 FragmentProgram(VertexOutput input) : SV_Target
 {
+    //return half4(input.normalWS * 0.5 + 0.5, 1.0);
+
     half4 resultColor = input.resultColor;
     half applyWeight = 1.0 - pow(saturate(1.0 - resultColor.a), _ShadingParams.z);
     half3 sceneColor = SampleSceneColor(

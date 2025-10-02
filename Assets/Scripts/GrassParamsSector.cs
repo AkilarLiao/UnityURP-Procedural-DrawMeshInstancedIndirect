@@ -149,9 +149,9 @@ namespace SB.ProceduralGrass
             wrap = windInfo.m_windWrap;
             m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_windCTilingWrap, new Vector4(
                 tiling.x, tiling.y, wrap.x, wrap.y));
-
-            m_targetProceduralInstanceFilterCS.SetFloat(ProceduralInstanceFilterID.msr_randomNormalWeight,
-                m_targetProceduralGrassData.m_randomNormalWeight);
+            
+            m_targetProceduralInstanceFilterCS.SetVector(ProceduralInstanceFilterID.msr_noiseNormalParams,
+                new Vector2(m_targetProceduralGrassData.m_randomNormalWeight, windParameters.m_windNormalIntensity));
         }
 
         private ComputeShader m_targetProceduralInstanceFilterCS = null;
@@ -187,7 +187,10 @@ namespace SB.ProceduralGrass
             public static readonly int msr_windBTilingWrap = Shader.PropertyToID("_WindBTilingWrap");
             public static readonly int msr_WindCParams = Shader.PropertyToID("_WindCParams");
             public static readonly int msr_windCTilingWrap = Shader.PropertyToID("_WindCTilingWrap");
-            public static readonly int msr_randomNormalWeight = Shader.PropertyToID("_RandomNormalWeight");
+
+            //public static readonly int msr_randomNormalWeight = Shader.PropertyToID("_RandomNormalWeight");
+            //public static readonly int msr_windNormalWeight = Shader.PropertyToID("_WindNormalWeight");
+            public static readonly int msr_noiseNormalParams = Shader.PropertyToID("_NoiseNormalParams");
         }
 
         private static class GrassShaderID

@@ -136,9 +136,13 @@ namespace SB.ProceduralGrass
             [Range(0.0f, 360.0f)]
             public float m_windYawAngle = 90.0f;
 
-            [Tooltip("The wind normal weight is only usage in pyramid mode.")]
+            [Tooltip("The wind normal weight (only in pyramid mode).")]
             [Range(0.0f, 1.0f)]
-            public float m_windNormalWeight = 0.25f;
+            public float m_windNormalWeight = 1.0f;
+
+            [Tooltip("The intensity of wind-induced normal disturbance (only in billboard mode).")]
+            [Range(0.0f, 20.0f)]
+            public float m_windNormalIntensity = 3.0f;
 
             [Tooltip("The first wind info.")]
             public WindInfo m_windInfoA = new WindInfo(2.0f, 2.0f,

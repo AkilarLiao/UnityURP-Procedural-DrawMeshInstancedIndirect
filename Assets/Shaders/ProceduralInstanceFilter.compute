@@ -64,10 +64,17 @@ half4 _WindCTilingWrap;
 
 float _CurrentTime;
 
+half _WindNormalWeight;
+
+//half _RandomNormalWeight;
+
+//x:randomNormalWeight
+//y:windNormalIntensity
+half2 _NoiseNormalParams;
+
 #ifdef PROCESS_BILLBOARD
 half3 _CameraForwardWS;
 half3 _CameraRightWS;
-half _RandomNormalWeight;
 #endif //PROCESS_BILLBOARD
 
 float2 GetRandomOffest2D(in float2 point2D)
@@ -229,11 +236,16 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	float2 randDir = float2(cos(angle), sin(angle));
 
 	half3 randomAddToN =
-		(_RandomNormalWeight * randDir.x) * _CameraRightWS +
-		(_RandomNormalWeight * randDir.y) * _CameraForwardWS;
+		(_NoiseNormalParams.x * randDir.x) * _CameraRightWS +
+		(_NoiseNormalParams.x * randDir.y) * _CameraForwardWS;
 
-	half3 windAddToN = wind * (-0.25 * _CameraRightWS);
-	half3 normalWS = normalize(half3(0,1,0) + randomAddToN);
+	//x:randomNormalWeight
+	//y:windNormalIntensity	
+	//half3 _NoiseNormalParams;
+	//half3 windAddToN = wind * (-0.25 * _CameraRightWS);
+
+	half3 windAddToN = wind * (_CameraRightWS) *_NoiseNormalParams.y;
+	half3 normalWS = normalize(half3(0,1,0) + randomAddToN + windAddToN);
 #endif
 
 	_FilterResultRT[int2(offestIndex % _FilterResultRTSize.x, offestIndex / _FilterResultRTSize.x)] =
