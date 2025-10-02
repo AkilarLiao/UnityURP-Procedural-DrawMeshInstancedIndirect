@@ -132,9 +132,9 @@ namespace SB.ProceduralGrass
             [Range(0.0f, 1.0f)]
             public float m_windIntensityRatio = 0.3f;
 
-            [Tooltip("The wind intensity ratio.")]
+            [Tooltip("The wind yaw angle.")]
             [Range(0.0f, 360.0f)]
-            public float m_windYawAngle = 0.0f;
+            public float m_windYawAngle = 90.0f;
 
             [Tooltip("The wind normal weight is only usage in pyramid mode.")]
             [Range(0.0f, 1.0f)]
