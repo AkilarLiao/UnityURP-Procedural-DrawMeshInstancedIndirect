@@ -83,7 +83,8 @@ VertexOutput VertexProgram(VertexInput input, uint instanceID : SV_InstanceID)
 
     half4 albedoColor = half4(SAMPLE_TEXTURE2D_LOD(_ColorTexture, sampler_ColorTexture,
         worldUV * _ShadingParams.y, 0).rgb, affectWeight);
-    output.resultColor = CalculateBlinnPhong(positionWS, normalWS, output.positionCS, albedoColor);
+    output.resultColor = CalculateBlinnPhong(positionWS, normalWS, output.positionCS,         
+        albedoColor);
 
     output.normalWS = normalWS;
     return output;
