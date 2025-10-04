@@ -74,7 +74,7 @@ This workflow bridges **procedural generation** with **artistic direction**.
 If you need a ready-to-use, production-level system with:
 
 - Powerful **Compute Shader brush tools** for painting vegetation  
-- Automatic terrain height & normal alignment  
+- Automatic Ground(Any Mesh) height & normal alignment  
 - Support for four vegetation types (billboard-based)  
 - Built-in wind animation and large-scale character interaction  
 - User-friendly Unity Editor integration  
